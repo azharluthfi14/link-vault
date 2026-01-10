@@ -1,0 +1,157 @@
+import { nanoid } from 'nanoid';
+
+import type { CreateLinkDto, UpdateShortLinkDto } from './dto';
+import { ShortLinkError, ShortLinkErrorCode } from './errors';
+import type {
+  LinkListParamsInput,
+  ShortLink,
+  ShortLinkRepository,
+  ShortLinkServiceDeps,
+} from './types';
+
+export class ShortLinkServices {
+  private readonly repo: ShortLinkRepository;
+
+  constructor(deps: ShortLinkServiceDeps) {
+    this.repo = deps.repo;
+  }
+
+  async getById(id: string): Promise<ShortLink> {
+    const link = await this.repo.findById(id);
+    if (!link) {
+      throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
+    }
+
+    return link;
+  }
+
+  async getByActiveSlug(slug: string): Promise<ShortLink> {
+    const link = await this.repo.findByActiveSlug(slug);
+    if (!link) {
+      throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
+    }
+
+    return link;
+  }
+
+  async listByUser(params: LinkListParamsInput) {
+    const { page = 1, limit = 10, userId, search, status } = params;
+
+    const safeLimit = Math.min(limit, 50);
+    const offset = (page - 1) * safeLimit;
+
+    const [items, total] = await Promise.all([
+      this.repo.listByUser({
+        userId,
+        limit: safeLimit,
+        offset,
+        search,
+        status,
+      }),
+      this.repo.countByUser(userId, search, status),
+    ]);
+
+    return {
+      items,
+      meta: {
+        page,
+        limit: safeLimit,
+        total,
+        totalPages: Math.ceil(total / safeLimit),
+      },
+    };
+  }
+
+  async create(userId: string, input: CreateLinkDto): Promise<ShortLink> {
+    const slug = input.slug ?? nanoid(7);
+
+    const exists = await this.repo.slugExists(slug);
+    if (exists) {
+      throw new ShortLinkError(ShortLinkErrorCode.SLUG_ALREADY_EXISTS);
+    }
+
+    return this.repo.create({
+      ...input,
+      slug,
+      userId,
+      expiresAt: input?.expiresAt ? new Date(input.expiresAt) : null,
+      status: 'active',
+    });
+  }
+
+  async update(
+    userId: string,
+    shortLinkId: string,
+    input: UpdateShortLinkDto
+  ): Promise<ShortLink> {
+    const shortLink = await this.repo.findById(shortLinkId);
+    if (!shortLink) {
+      throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
+    }
+
+    if (shortLink?.userId !== userId) {
+      throw new ShortLinkError(ShortLinkErrorCode.FORBIDDEN);
+    }
+
+    if (input.slug && input.slug !== shortLink.slug) {
+      const exists = await this.repo.slugExists(input.slug);
+      if (exists) {
+        throw new ShortLinkError(ShortLinkErrorCode.SLUG_ALREADY_EXISTS);
+      }
+    }
+
+    if (shortLink.status === 'expired' && input.status === 'active') {
+      throw new ShortLinkError(ShortLinkErrorCode.INVALID_STATUS);
+    }
+
+    const updated = await this.repo.update(shortLinkId, {
+      ...input,
+      expiresAt: input.expiresAt ? new Date(input.expiresAt) : undefined,
+    });
+
+    if (!updated) {
+      throw new ShortLinkError(ShortLinkErrorCode.INVALID_URL);
+    }
+
+    return updated;
+  }
+
+  async changeStatus(
+    userId: string,
+    shortLinkId: string,
+    status: 'active' | 'disabled'
+  ) {
+    const shortLink = await this.repo.findById(shortLinkId);
+
+    if (!shortLink) {
+      throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
+    }
+
+    if (shortLink.userId !== userId) {
+      throw new ShortLinkError(ShortLinkErrorCode.FORBIDDEN);
+    }
+
+    if (shortLink.status === 'expired') {
+      throw new ShortLinkError(ShortLinkErrorCode.INVALID_STATUS);
+    }
+
+    await this.repo.update(shortLinkId, { status });
+  }
+
+  async delete(userId: string, shortLinkId: string): Promise<void> {
+    const shortLink = await this.repo.findById(shortLinkId);
+    if (!shortLink) {
+      throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
+    }
+
+    if (shortLink.userId !== userId) {
+      throw new ShortLinkError(ShortLinkErrorCode.FORBIDDEN);
+    }
+
+    await this.repo.softDelete(shortLinkId);
+  }
+
+  async recordClick(shortLinkId: string): Promise<void> {
+    await this.repo.incrementClicks(shortLinkId);
+  }
+}
