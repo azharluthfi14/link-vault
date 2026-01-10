@@ -36,9 +36,9 @@ export async function GET(req: Request) {
       userId: session.user.id,
       ...parsed.data,
     });
-    return NextResponse.json({ data: result });
+    return NextResponse.json(result);
   } catch (error) {
     console.log('error', error);
-    handleApiError(error);
+    return handleApiError(error);
   }
 }

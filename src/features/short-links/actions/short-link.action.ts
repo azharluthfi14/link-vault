@@ -26,7 +26,7 @@ export async function createShortLinkAction(
 ) {
   const session = await getSession();
 
-  const raw = Object.entries(formData.entries());
+  const raw = Object.fromEntries(formData.entries());
   const parsed = createShortLinkSchema.safeParse(raw);
 
   if (!parsed.success) {
@@ -39,7 +39,7 @@ export async function createShortLinkAction(
 
   try {
     const link = await shortLinkService.create(session.user.id, parsed.data);
-    revalidatePath('/links');
+    revalidatePath('/short-link');
     return { success: true, data: link };
   } catch (error) {
     return mapShortLinkError(error);

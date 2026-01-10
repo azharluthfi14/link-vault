@@ -6,4 +6,6 @@
 @theme {
   --color-primary: #f97316;
   --color-danger: #ef4444;
+
+  --text-xxs: 11px;
 }
