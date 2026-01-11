@@ -3,20 +3,34 @@ import z from 'zod';
 export const createShortLinkSchema = z.object({
   slug: z
     .string()
+    .trim()
     .min(3, 'Slug must be at least 3 characters long')
     .max(64, 'Slug must be at most 64 characters long')
     .regex(
       /^[a-zA-Z0-9-_]+$/,
       'Slug can only contain letters, numbers, _ and -'
     )
-    .optional(),
+    .optional()
+    .or(z.literal(''))
+    .transform((v) => (v === '' ? undefined : v)),
   originalUrl: z.url('Invalid URL format'),
   description: z
     .string()
     .max(500, 'Description must be at most 500 characters long')
     .optional(),
-  expiresAt: z.iso.datetime().optional(),
-  maxClicks: z.number().positive().optional(),
+  expiresAt: z
+    .preprocess((value) => {
+      if (!value || typeof value !== 'string') return undefined;
+      const cleaned = value.replace(/\[.*\]$/, '');
+      const date = new Date(cleaned);
+      if (isNaN(date.getTime())) return undefined;
+      return date;
+    }, z.date())
+    .optional()
+    .refine((value) => !value || value.getTime() > Date.now(), {
+      message: 'Expiration date must be in the future',
+    }),
+  maxClicks: z.coerce.number().int().positive().optional(),
 });
 
 export type CreateLinkDto = z.infer<typeof createShortLinkSchema>;

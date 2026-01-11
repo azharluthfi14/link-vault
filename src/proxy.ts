@@ -2,10 +2,8 @@ import { headers } from 'next/headers';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+import { PUBLIC_ROUTES } from './constants';
 import { auth } from './libs/auth/auth';
-
-const publicRoutes = ['/', '/login', '/register'];
-const protectedRoutes = ['/home'];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -25,7 +23,7 @@ export async function proxy(request: NextRequest) {
     });
 
     const isAuthenticated = !!session?.user;
-    const isPublicRoute = publicRoutes.includes(pathname);
+    const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
 
     if (!isAuthenticated) {
       if (isPublicRoute) return NextResponse.next();

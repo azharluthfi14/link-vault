@@ -1,7 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-
 import type { ShortLinkErrorCode } from '@/features/short-links';
 import {
   createShortLinkSchema,
@@ -27,6 +25,10 @@ export async function createShortLinkAction(
   const session = await getSession();
 
   const raw = Object.fromEntries(formData.entries());
+
+  if (raw.expiresAt === '') delete raw.expiresAt;
+  if (raw.maxClicks === '') delete raw.maxClicks;
+
   const parsed = createShortLinkSchema.safeParse(raw);
 
   if (!parsed.success) {
@@ -39,7 +41,7 @@ export async function createShortLinkAction(
 
   try {
     const link = await shortLinkService.create(session.user.id, parsed.data);
-    revalidatePath('/short-link');
+
     return { success: true, data: link };
   } catch (error) {
     return mapShortLinkError(error);

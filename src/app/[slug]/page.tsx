@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 
+import { RESERVED_ROUTES } from '@/constants';
 import {
   DrizzleShortLinkRepository,
   ShortLinkServices,
@@ -10,19 +11,6 @@ interface PageProps {
     slug: string;
   }>;
 }
-
-const RESERVED_ROUTES = [
-  'api',
-  'dashboard',
-  'short-link',
-  'login',
-  'register',
-  'forgot-password',
-  'reset-password',
-  '_next',
-  'public',
-  'static',
-];
 
 const service = new ShortLinkServices({
   repo: new DrizzleShortLinkRepository(),

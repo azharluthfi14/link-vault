@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { shortLinks } from '@/db/schemas';
@@ -97,14 +97,26 @@ export class DrizzleShortLinkRepository implements ShortLinkRepository {
     return !!result;
   }
 
-  async incrementClicks(id: string): Promise<void> {
-    await db
+  async incrementClicks(id: string): Promise<boolean> {
+    const result = await db
       .update(shortLinks)
       .set({
         clicks: sql`${shortLinks.clicks} + 1`,
         updatedAt: new Date(),
       })
-      .where(eq(shortLinks.id, id));
+      .where(
+        and(
+          eq(shortLinks.id, id),
+          eq(shortLinks.status, 'active'),
+          or(
+            isNull(shortLinks.maxClicks),
+            sql`${shortLinks.clicks} < ${shortLinks.maxClicks}`
+          )
+        )
+      )
+      .returning({ id: shortLinks.id });
+
+    return result.length > 0;
   }
 
   async softDelete(id: string): Promise<void> {

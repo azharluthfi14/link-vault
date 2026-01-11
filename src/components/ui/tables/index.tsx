@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-import { cn } from '@heroui/react';
+import { cn, Skeleton } from '@heroui/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   flexRender,
@@ -14,9 +14,15 @@ type TableProps<T> = {
   data: T[];
   columns: ColumnDef<T, any>[];
   className?: string;
+  isLoading?: boolean;
 };
 
-export function DataTable<T>({ data, columns, className }: TableProps<T>) {
+export function DataTable<T>({
+  data,
+  columns,
+  className,
+  isLoading,
+}: TableProps<T>) {
   const memoizedColumn = useMemo(() => columns, [columns]);
   const memoizedData = useMemo(() => data, [data]);
 
@@ -48,7 +54,15 @@ export function DataTable<T>({ data, columns, className }: TableProps<T>) {
           ))}
         </thead>
         <tbody>
-          {table && table?.getRowModel()?.rows?.length === 0 ? (
+          {isLoading ? (
+            <td colSpan={12} className="space-y-2 p-2">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <Skeleton key={i} className="w-full rounded-md">
+                  <div className="bg-default-200 h-10 rounded-md" />
+                </Skeleton>
+              ))}
+            </td>
+          ) : table?.getRowModel()?.rows?.length === 0 ? (
             <tr>
               <td
                 colSpan={columns.length}

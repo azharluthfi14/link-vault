@@ -28,7 +28,7 @@ export interface ShortLinkRepository {
   slugExists(slug: string): Promise<boolean>;
   softDelete(id: string): Promise<void>;
   listByUser(params: LinkListParams): Promise<ShortLink[]>;
-  incrementClicks(id: string): Promise<void>;
+  incrementClicks(id: string): Promise<boolean>;
   countByUser(
     userId: string,
     search?: string,

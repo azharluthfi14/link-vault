@@ -1,6 +1,7 @@
 'use client';
 
 import { cn, useDisclosure } from '@heroui/react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { User } from 'better-auth';
 import { type ReactNode, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -18,12 +19,23 @@ export const ContentWrapper = ({
   children: ReactNode;
   user: User;
 }) => {
+  const queryClient = useQueryClient();
+
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
-  const [stateCreateLink, formCreateLink, pendingCreateLink] =
-    useResettableActionState(createShortLinkAction, undefined);
+  const [
+    stateCreateLink,
+    formCreateLink,
+    pendingCreateLink,
+    resetStateCreateLink,
+  ] = useResettableActionState(createShortLinkAction, undefined);
 
   const handleClickAddLink = () => {
     onOpen();
+  };
+
+  const handleOpenChange = () => {
+    onOpenChange();
+    resetStateCreateLink();
   };
 
   useEffect(() => {
@@ -32,8 +44,9 @@ export const ContentWrapper = ({
       queueMicrotask(() => {
         onClose();
       });
+      queryClient.invalidateQueries({ queryKey: ['short-links'] });
     }
-  }, [stateCreateLink?.success]);
+  }, [stateCreateLink]);
 
   return (
     <>
@@ -48,8 +61,10 @@ export const ContentWrapper = ({
       <CreateLinkModal
         action={formCreateLink}
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
+        onOpenChange={handleOpenChange}
         isLoading={pendingCreateLink}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        errors={stateCreateLink?.message as any}
       />
     </>
   );

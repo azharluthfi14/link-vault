@@ -31,6 +31,16 @@ export class ShortLinkServices {
       throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
     }
 
+    if (link.expiresAt && link.expiresAt < new Date()) {
+      await this.repo.update(link.id, { status: 'expired' });
+      throw new ShortLinkError(ShortLinkErrorCode.EXPIRED);
+    }
+
+    if (link.maxClicks !== null && link.clicks >= link.maxClicks) {
+      await this.repo.update(link.id, { status: 'expired' });
+      throw new ShortLinkError(ShortLinkErrorCode.MAX_CLICKS_REACHED);
+    }
+
     return link;
   }
 
@@ -74,7 +84,7 @@ export class ShortLinkServices {
       ...input,
       slug,
       userId,
-      expiresAt: input?.expiresAt ? new Date(input.expiresAt) : null,
+      expiresAt: input?.expiresAt ?? null,
       status: 'active',
     });
   }
@@ -152,6 +162,10 @@ export class ShortLinkServices {
   }
 
   async recordClick(shortLinkId: string): Promise<void> {
-    await this.repo.incrementClicks(shortLinkId);
+    const success = await this.repo.incrementClicks(shortLinkId);
+
+    if (!success) {
+      throw new ShortLinkError(ShortLinkErrorCode.MAX_CLICKS_REACHED);
+    }
   }
 }

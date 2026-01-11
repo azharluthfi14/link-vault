@@ -31,3 +31,19 @@ export function useShortLinks(params?: Partial<LinkListQueryParams>) {
     staleTime: 1000 * 60 * 5,
   });
 }
+
+export function useShortLinkDetail(id?: string) {
+  return useQuery<ShortLink>({
+    queryKey: ['short-link', id],
+    queryFn: async () => {
+      const res = await fetch(`/api/short-links/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch short link');
+
+      const data = await res.json();
+      return data;
+    },
+    enabled: Boolean(id),
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+}

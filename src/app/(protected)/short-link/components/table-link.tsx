@@ -1,43 +1,71 @@
 'use client';
 
-import { Button, Card, CardBody, Chip, Link } from '@heroui/react';
+import { Button, Card, CardBody, Chip, Link, Snippet } from '@heroui/react';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Eye } from 'lucide-react';
+import { ExternalLink, Eye, MousePointerClick } from 'lucide-react';
 
 import { DataTable } from '@/components/ui';
 import type { ShortLink } from '@/features/short-links';
-
-import { useShortLinks } from '../hooks/use-short-link';
+import { cn, formatExpiresAt } from '@/utils';
 
 interface TableLinkProps {
-  userId: string;
+  handleClickDetail: (id: string) => void;
+  shortLink?: ShortLink[];
+  isLoading?: boolean;
 }
 
-export const TableLink = ({ userId }: TableLinkProps) => {
-  const { data } = useShortLinks();
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
+
+export const TableLink = ({
+  handleClickDetail,
+  shortLink,
+  isLoading,
+}: TableLinkProps) => {
   const columnShortLinkHelper = createColumnHelper<ShortLink>();
   const shortLinkColumn = [
     columnShortLinkHelper.accessor('slug', {
-      header: 'Slug Url',
+      header: 'Short Link',
       cell: (data) => (
-        <Link
-          className="text-xs"
-          isExternal
-          href={`http://localhost:3000/${data.getValue()}`}>
-          {data.getValue()}
-        </Link>
+        <Snippet
+          symbol=""
+          tooltipProps={{
+            color: 'primary',
+            showArrow: true,
+          }}
+          classNames={{
+            base: cn('p-0 gap-x-0 bg-transparent'),
+            copyButton: cn('text-base'),
+          }}>
+          <Link
+            className="cursor-pointer text-xs hover:underline"
+            isExternal
+            href={`http://localhost:3000/${data.getValue()}`}>
+            {`${BASE_URL}/${data.getValue()}`}
+          </Link>
+        </Snippet>
       ),
     }),
     columnShortLinkHelper.accessor('originalUrl', {
-      header: 'Original Url',
-      cell: (data) => data.getValue(),
+      header: 'Original Link',
+      cell: (data) => {
+        const link = data.getValue();
+        return (
+          <Link
+            isExternal
+            href={link}
+            className="hover:text-primary flex cursor-pointer space-x-2 text-xs text-gray-500 transition-colors hover:underline">
+            {link.slice(0, 40)}... <ExternalLink className="size-3" />{' '}
+          </Link>
+        );
+      },
     }),
     columnShortLinkHelper.accessor('status', {
       header: 'Status',
       cell: (data) => (
         <Chip
           variant="flat"
-          className="px-3 capitalize"
+          size="sm"
+          className="px-2 capitalize"
           color={
             data.getValue() === 'active'
               ? 'success'
@@ -50,12 +78,24 @@ export const TableLink = ({ userId }: TableLinkProps) => {
       ),
     }),
     columnShortLinkHelper.accessor('clicks', {
-      header: 'Click',
-      cell: (data) => data.getValue(),
+      header: 'Clicks',
+      cell: (data) => {
+        const countClick = data.getValue();
+        return (
+          <div className="flex items-center justify-center space-x-2 text-center">
+            <MousePointerClick className="size-4" />
+            <div>{countClick}</div>
+          </div>
+        );
+      },
     }),
     columnShortLinkHelper.accessor('expiresAt', {
-      header: 'Expires',
-      cell: (data) => data.getValue(),
+      header: 'Expiration',
+      cell: (data) => {
+        const value = data.getValue();
+        if (!value) return '-';
+        return <div>{formatExpiresAt(value.toString())}</div>;
+      },
     }),
     columnShortLinkHelper.display({
       id: 'actions',
@@ -64,7 +104,7 @@ export const TableLink = ({ userId }: TableLinkProps) => {
         return (
           <div className="text-right">
             <Button
-              onPress={() => ''}
+              onPress={() => handleClickDetail(row.original.id)}
               isIconOnly
               size="sm"
               color="default"
@@ -81,7 +121,11 @@ export const TableLink = ({ userId }: TableLinkProps) => {
   return (
     <Card shadow="none" className="border border-gray-200">
       <CardBody className="p-0">
-        <DataTable columns={shortLinkColumn} data={data?.items ?? []} />
+        <DataTable
+          columns={shortLinkColumn}
+          data={shortLink ?? []}
+          isLoading={isLoading}
+        />
       </CardBody>
     </Card>
   );

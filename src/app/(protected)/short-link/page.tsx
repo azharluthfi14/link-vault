@@ -1,8 +1,7 @@
+'use server';
 import { BarChart3, Link } from 'lucide-react';
 
-import { getSession } from '@/libs/auth/get-session';
-
-import { TableLink } from './components/table-link';
+import { ShortLinkCLientPage } from './components';
 
 export default async function ShortLinkPage() {
   return (
@@ -29,7 +28,7 @@ export default async function ShortLinkPage() {
           </div>
         </div>
       </div>
-      <TableLink userId={''} />
+      <ShortLinkCLientPage />
     </div>
   );
 }
