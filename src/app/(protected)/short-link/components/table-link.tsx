@@ -4,13 +4,17 @@ import {
   Button,
   Card,
   CardBody,
+  CardHeader,
   Chip,
+  Input,
   Link,
   Pagination,
+  Select,
+  SelectItem,
   Snippet,
 } from '@heroui/react';
 import { createColumnHelper } from '@tanstack/react-table';
-import { ExternalLink, Eye, MousePointerClick } from 'lucide-react';
+import { ExternalLink, Eye, MousePointerClick, Search } from 'lucide-react';
 
 import { DataTable } from '@/components/ui';
 import type { ShortLink } from '@/features/short-links';
@@ -23,9 +27,17 @@ interface TableLinkProps {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  keyword: string;
+  setKeyword: (keyword: string) => void;
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
+
+const categoryStatus = [
+  { key: 'active', label: 'Active' },
+  { key: 'disabled', label: 'Disabled' },
+  { key: 'status', label: 'Status' },
+];
 
 export const TableLink = ({
   handleClickDetail,
@@ -34,6 +46,8 @@ export const TableLink = ({
   onPageChange,
   page,
   totalPages,
+  keyword,
+  setKeyword,
 }: TableLinkProps) => {
   const columnShortLinkHelper = createColumnHelper<ShortLink>();
   const shortLinkColumn = [
@@ -135,6 +149,29 @@ export const TableLink = ({
   return (
     <div className="space-y-2">
       <Card shadow="none" radius="sm" className="border border-gray-200">
+        <CardHeader>
+          <div className="flex w-full items-end justify-end gap-x-4">
+            <Input
+              type="text"
+              radius="sm"
+              isClearable
+              onClear={() => setKeyword('')}
+              placeholder="Find your slug..."
+              startContent={<Search className="size-4 text-gray-400" />}
+              className="w-4/12"
+              value={keyword}
+              onValueChange={setKeyword}
+              classNames={{
+                clearButton: cn('text-gray-500'),
+              }}
+            />
+            <Select radius="sm" placeholder="Select status" className="w-2/12">
+              {categoryStatus.map((status) => (
+                <SelectItem key={status.key}>{status.label}</SelectItem>
+              ))}
+            </Select>
+          </div>
+        </CardHeader>
         <CardBody className="p-0">
           <DataTable
             columns={shortLinkColumn}
@@ -149,6 +186,7 @@ export const TableLink = ({
             initialPage={page}
             total={totalPages}
             onChange={onPageChange}
+            showControls
           />
         </div>
       )}

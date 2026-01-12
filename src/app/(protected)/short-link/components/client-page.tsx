@@ -1,6 +1,7 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -8,7 +9,7 @@ import {
   deleteShortLinkAction,
   updateShortLinkAction,
 } from '@/features/short-links/actions/short-link.action';
-import { useResettableActionState } from '@/hooks';
+import { useDebounce, useResettableActionState } from '@/hooks';
 
 import { useShortLinkDetail, useShortLinks } from '../hooks';
 import { ConfirmDeleteLink } from './confirm-delete';
@@ -16,15 +17,25 @@ import { DetailLink } from './detail-link';
 import { EditLinkModal } from './edit-link';
 import { TableLink } from './table-link';
 
-const LIMIT = 10;
+const LIMIT = 5;
 
 export const ShortLinkCLientPage = () => {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState('');
-  const [shortLinkPage, setShortLinkPage] = useState(1);
+
+  const [query, setQuery] = useQueryStates({
+    page: parseAsInteger.withDefault(1),
+    limit: parseAsInteger.withDefault(10),
+    search: parseAsString.withDefault(''),
+    status: parseAsString,
+  });
+
+  const searchDebounce = useDebounce(query.search, 400);
+
   const { data: shortLink, isLoading: loadingShortLink } = useShortLinks({
-    page: shortLinkPage,
+    page: query.page,
     limit: LIMIT,
+    search: searchDebounce,
   });
   const { data: detailShortLink } = useShortLinkDetail(selectedId ?? undefined);
 
@@ -91,19 +102,28 @@ export const ShortLinkCLientPage = () => {
     if (!shortLink?.meta.totalPages) return;
 
     queryClient.prefetchQuery({
-      queryKey: ['short-links', { page: shortLinkPage + 1, LIMIT }],
+      queryKey: ['short-links', { page: query.page + 1, LIMIT }],
     });
-  }, [shortLink?.meta.totalPages, queryClient, shortLinkPage]);
+  }, [shortLink?.meta.totalPages, queryClient, query.page]);
+
+  useEffect(() => {
+    setQuery({
+      search: searchDebounce || undefined,
+      page: 1,
+    });
+  }, [searchDebounce]);
 
   return (
     <>
       <TableLink
         handleClickDetail={openDetailModal}
         shortLink={shortLink?.items}
-        onPageChange={setShortLinkPage}
+        onPageChange={(page) => setQuery({ page })}
         isLoading={loadingShortLink}
         totalPages={shortLink?.meta?.totalPages ?? 0}
-        page={shortLinkPage}
+        page={query.page}
+        keyword={query.search}
+        setKeyword={(search: string) => setQuery({ search, page: 1 })}
       />
       <DetailLink
         openEditModal={openEditModal}

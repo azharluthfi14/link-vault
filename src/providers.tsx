@@ -2,6 +2,7 @@
 import { HeroUIProvider } from '@heroui/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 
@@ -12,7 +13,9 @@ const queryClient = new QueryClient();
 export default function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <HeroUIProvider>{children}</HeroUIProvider>
+      <NuqsAdapter>
+        <HeroUIProvider>{children}</HeroUIProvider>
+      </NuqsAdapter>
       <ReactQueryDevtools initialIsOpen={false} />
       <Toaster
         position="top-right"
