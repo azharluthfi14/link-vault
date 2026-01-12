@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import type { LinkListQueryParams, ShortLink } from '@/features/short-links';
 
-type ShortLinkListResponse = {
+export type ShortLinkListResponse = {
   items: ShortLink[];
   meta: {
     page: number;
@@ -13,13 +13,19 @@ type ShortLinkListResponse = {
 };
 
 export function useShortLinks(params?: Partial<LinkListQueryParams>) {
+  const query = {
+    page: params?.page ?? 1,
+    limit: params?.limit ?? 10,
+    ...(params?.search ? { search: params.search } : {}),
+    ...(params?.status ? { status: params.status } : {}),
+  };
+
   return useQuery<ShortLinkListResponse>({
     queryKey: ['short-links', params],
     queryFn: async () => {
       const qs = new URLSearchParams(
-        params as Record<string, string>
+        Object.entries(query).map(([k, v]) => [k, String(v)])
       ).toString();
-
       const res = await fetch(`/api/short-links?${qs}`);
 
       if (!res.ok) {
@@ -29,6 +35,7 @@ export function useShortLinks(params?: Partial<LinkListQueryParams>) {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
+    placeholderData: keepPreviousData,
   });
 }
 

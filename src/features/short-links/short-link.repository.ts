@@ -51,7 +51,7 @@ export class DrizzleShortLinkRepository implements ShortLinkRepository {
     }
 
     if (search) {
-      conditions.push(ilike(shortLinks.slug, `%${search}`));
+      conditions.push(ilike(shortLinks.slug, `%${search}%`));
     }
 
     return db

@@ -1,6 +1,14 @@
 'use client';
 
-import { Button, Card, CardBody, Chip, Link, Snippet } from '@heroui/react';
+import {
+  Button,
+  Card,
+  CardBody,
+  Chip,
+  Link,
+  Pagination,
+  Snippet,
+} from '@heroui/react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { ExternalLink, Eye, MousePointerClick } from 'lucide-react';
 
@@ -12,6 +20,9 @@ interface TableLinkProps {
   handleClickDetail: (id: string) => void;
   shortLink?: ShortLink[];
   isLoading?: boolean;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
@@ -20,6 +31,9 @@ export const TableLink = ({
   handleClickDetail,
   shortLink,
   isLoading,
+  onPageChange,
+  page,
+  totalPages,
 }: TableLinkProps) => {
   const columnShortLinkHelper = createColumnHelper<ShortLink>();
   const shortLinkColumn = [
@@ -119,14 +133,25 @@ export const TableLink = ({
   ];
 
   return (
-    <Card shadow="none" className="border border-gray-200">
-      <CardBody className="p-0">
-        <DataTable
-          columns={shortLinkColumn}
-          data={shortLink ?? []}
-          isLoading={isLoading}
-        />
-      </CardBody>
-    </Card>
+    <div className="space-y-2">
+      <Card shadow="none" radius="sm" className="border border-gray-200">
+        <CardBody className="p-0">
+          <DataTable
+            columns={shortLinkColumn}
+            data={shortLink ?? []}
+            isLoading={isLoading}
+          />
+        </CardBody>
+      </Card>
+      {totalPages > 1 && (
+        <div className="flex justify-center">
+          <Pagination
+            initialPage={page}
+            total={totalPages}
+            onChange={onPageChange}
+          />
+        </div>
+      )}
+    </div>
   );
 };

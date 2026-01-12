@@ -18,7 +18,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
 
     const parsed = listQueryParamsSchema.safeParse(
-      Object.fromEntries(searchParams)
+      Object.fromEntries(
+        [...searchParams.entries()].filter(([, v]) => v !== '')
+      )
     );
 
     if (!parsed.success) {

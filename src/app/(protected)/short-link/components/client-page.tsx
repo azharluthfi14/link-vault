@@ -1,7 +1,7 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -16,10 +16,16 @@ import { DetailLink } from './detail-link';
 import { EditLinkModal } from './edit-link';
 import { TableLink } from './table-link';
 
+const LIMIT = 10;
+
 export const ShortLinkCLientPage = () => {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState('');
-  const { data: shortLink, isLoading: loadingShortLink } = useShortLinks();
+  const [shortLinkPage, setShortLinkPage] = useState(1);
+  const { data: shortLink, isLoading: loadingShortLink } = useShortLinks({
+    page: shortLinkPage,
+    limit: LIMIT,
+  });
   const { data: detailShortLink } = useShortLinkDetail(selectedId ?? undefined);
 
   const [modalDetail, setModalDetail] = useState(false);
@@ -81,12 +87,23 @@ export const ShortLinkCLientPage = () => {
       },
     });
 
+  useEffect(() => {
+    if (!shortLink?.meta.totalPages) return;
+
+    queryClient.prefetchQuery({
+      queryKey: ['short-links', { page: shortLinkPage + 1, LIMIT }],
+    });
+  }, [shortLink?.meta.totalPages, queryClient, shortLinkPage]);
+
   return (
     <>
       <TableLink
         handleClickDetail={openDetailModal}
         shortLink={shortLink?.items}
+        onPageChange={setShortLinkPage}
         isLoading={loadingShortLink}
+        totalPages={shortLink?.meta?.totalPages ?? 0}
+        page={shortLinkPage}
       />
       <DetailLink
         openEditModal={openEditModal}

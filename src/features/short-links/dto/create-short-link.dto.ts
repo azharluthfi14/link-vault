@@ -1,5 +1,9 @@
 import z from 'zod';
 
+import { RESERVED_ROUTES } from '@/constants';
+
+const reservedSlugSet = new Set(RESERVED_ROUTES.map((s) => s.toLowerCase()));
+
 export const createShortLinkSchema = z.object({
   slug: z
     .string()
@@ -12,7 +16,11 @@ export const createShortLinkSchema = z.object({
     )
     .optional()
     .or(z.literal(''))
-    .transform((v) => (v === '' ? undefined : v)),
+    .transform((v) => (v === '' ? undefined : v))
+    .refine((slug) => !slug || !reservedSlugSet.has(slug.toLowerCase()), {
+      message: 'This slug is reserved and cannot be used',
+    }),
+
   originalUrl: z.url('Invalid URL format'),
   description: z
     .string()

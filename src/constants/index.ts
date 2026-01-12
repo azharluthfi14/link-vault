@@ -1,6 +1,6 @@
 export const RESERVED_ROUTES = [
   'api',
-  'dashboard',
+  'home',
   'short-link',
   'login',
   'register',

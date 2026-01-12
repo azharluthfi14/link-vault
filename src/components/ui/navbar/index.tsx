@@ -9,7 +9,7 @@ import {
   DropdownTrigger,
 } from '@heroui/react';
 import type { User } from 'better-auth';
-import { Plus, TextAlignStart, X } from 'lucide-react';
+import { LogOut, Plus, TextAlignStart, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -86,7 +86,7 @@ export const Navbar = ({ user, handleClickAddLink }: NavbarProps) => {
             </svg>
           </button>
 
-          <div className="hidden lg:block">
+          {/* <div className="hidden lg:block">
             <form>
               <div className="relative">
                 <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2">
@@ -117,7 +117,7 @@ export const Navbar = ({ user, handleClickAddLink }: NavbarProps) => {
                 </button>
               </div>
             </form>
-          </div>
+          </div> */}
         </div>
         <div className="flex gap-x-4">
           <Button
@@ -131,17 +131,20 @@ export const Navbar = ({ user, handleClickAddLink }: NavbarProps) => {
               <Avatar
                 as="button"
                 name={user.email[0]}
-                className="bg-primary size-10 text-white transition-transform"
+                className="size-10 cursor-pointer bg-gray-400 text-xl text-white transition-transform"
               />
             </DropdownTrigger>
             <DropdownMenu>
               <DropdownItem
-                className="flex items-center justify-center"
+                className="text-danger flex items-center justify-center"
+                startContent={
+                  <LogOut className="text-danger pointer-events-none size-5 shrink-0" />
+                }
                 variant="flat"
                 onPress={handleLogout}
                 color="danger"
                 key={'logout'}>
-                Logout
+                Log out
               </DropdownItem>
             </DropdownMenu>
           </Dropdown>

@@ -1,5 +1,7 @@
 import { nanoid } from 'nanoid';
 
+import { RESERVED_ROUTES } from '@/constants';
+
 import type { CreateLinkDto, UpdateShortLinkDto } from './dto';
 import { ShortLinkError, ShortLinkErrorCode } from './errors';
 import type {
@@ -83,12 +85,22 @@ export class ShortLinkServices {
         limit: safeLimit,
         total,
         totalPages: Math.ceil(total / safeLimit),
+        hasNextPage: page * safeLimit < total,
+        hasPrevPage: page > 1,
       },
     };
   }
 
   async create(userId: string, input: CreateLinkDto): Promise<ShortLink> {
     const slug = input.slug ?? nanoid(7);
+
+    const reservedSlugSet = new Set(
+      RESERVED_ROUTES.map((s) => s.toLowerCase())
+    );
+
+    if (reservedSlugSet.has(slug.toLowerCase())) {
+      throw new ShortLinkError(ShortLinkErrorCode.RESERVED_SLUG);
+    }
 
     const exists = await this.repo.slugExists(slug);
     if (exists) {

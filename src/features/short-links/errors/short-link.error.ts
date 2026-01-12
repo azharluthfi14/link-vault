@@ -6,6 +6,7 @@ export enum ShortLinkErrorCode {
   EXPIRED = 'EXPIRED',
   MAX_CLICKS_REACHED = 'MAX_CLICKS_REACHED',
   INVALID_URL = 'INVALID_URL',
+  RESERVED_SLUG = 'RESERVED_SLUG',
 }
 
 export const ShortLinkErrorMessage: Record<ShortLinkErrorCode, string> = {
@@ -16,6 +17,7 @@ export const ShortLinkErrorMessage: Record<ShortLinkErrorCode, string> = {
   EXPIRED: 'This link has expired',
   MAX_CLICKS_REACHED: 'This link has reached its maximum clicks',
   INVALID_URL: 'The provided URL is invalid',
+  RESERVED_SLUG: 'Slug conflicts with system routes',
 };
 
 export const ShortLinkErrorStatus: Record<ShortLinkErrorCode, number> = {
@@ -26,6 +28,7 @@ export const ShortLinkErrorStatus: Record<ShortLinkErrorCode, number> = {
   EXPIRED: 410,
   MAX_CLICKS_REACHED: 410,
   INVALID_URL: 400,
+  RESERVED_SLUG: 403,
 };
 
 export class ShortLinkError extends Error {
