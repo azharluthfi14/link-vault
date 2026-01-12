@@ -9,7 +9,7 @@ import {
   DropdownTrigger,
 } from '@heroui/react';
 import type { User } from 'better-auth';
-import { LogOut, Plus, TextAlignStart, X } from 'lucide-react';
+import { LogOut, Plus, TextAlignStart } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
