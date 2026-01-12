@@ -1,16 +1,10 @@
 'use client';
-import {
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  Input,
-} from '@heroui/react';
+import { Button, Input } from '@heroui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import router from 'next/router';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -18,19 +12,29 @@ import z from 'zod';
 
 import { authClient } from '@/libs/auth/auth-client';
 
-const registerSchema = z.object({
-  name: z.string('Please enter fullname'),
-  email: z.email('Please enter a valid email address'),
-  password: z
-    .string('Please enter password')
-    .min(8, 'Be at least 8 characters long'),
-  confirmPassword: z.string('Please enter confirm password'),
-});
+const registerSchema = z
+  .object({
+    name: z.string('Please enter fullname'),
+    email: z.email('Please enter a valid email address'),
+    password: z
+      .string('Please enter password')
+      .min(8, 'Be at least 8 characters long'),
+    confirmPassword: z.string('Please enter confirm password'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 type RegisterInput = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
+  const router = useRouter();
+
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const {
     control,
     handleSubmit,
@@ -51,121 +55,143 @@ export default function RegisterPage() {
         password: getValues('password'),
       };
 
-      const response = await authClient.signUp.email(payload);
-
-      if (response.error) {
-        toast.error(response.error.message || 'Register failed');
-        return;
-      }
-
-      toast.success('Register successful!');
-      router.push('/login');
-      // router.refresh();
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+      await authClient.signUp.email(payload, {
+        onSuccess: () => {
+          toast.success('Success register');
+          router.push('/home');
+          router.refresh();
+        },
+        onError: (ctx) => {
+          toast.error(ctx.error.message ?? 'Login failed');
+          setLoading(false);
+        },
+      });
+    } catch (error) {
       console.error('Unexpected error:', error);
       toast.error('An unexpected error occurred');
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex flex-row items-center justify-center space-x-3">
-          <div className="bg-primary inline-flex h-16 w-16 items-center justify-center rounded-2xl text-white">
-            <Link2 className="h-8 w-8" />
-          </div>
-          <div>
-            <h1 className="mb-2 text-3xl">LinkVault</h1>
-            <p className="text-gray-600">
-              Short links, fully under your control
-            </p>
-          </div>
-        </div>
-        <Card shadow="none" className="border border-gray-100 p-4">
-          <CardHeader className="flex-col">
-            <h1 className="text-xl font-bold">Create account</h1>
-            <p>Start creating short links in seconds</p>
-          </CardHeader>
-          <form onSubmit={handleSubmit(handleSubmitRegister)}>
-            <CardBody className="space-y-4">
-              <Controller
-                name="name"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    label="Fullname"
-                    isInvalid={!!errors.name}
-                    errorMessage={errors.name?.message}
-                    type="text"
-                    {...field}
-                  />
-                )}
-              />
-              <Controller
-                name="email"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    label="Email address"
-                    isInvalid={!!errors.email}
-                    errorMessage={errors.email?.message}
-                    type="email"
-                    {...field}
-                  />
-                )}
-              />
-              <Controller
-                control={control}
-                name="password"
-                render={({ field }) => (
-                  <Input
-                    label="Password"
-                    isInvalid={!!errors.password}
-                    errorMessage={errors.password?.message}
-                    type="password"
-                    {...field}
-                  />
-                )}
-              />
-              <Controller
-                control={control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <Input
-                    label="Confirm Password"
-                    isInvalid={!!errors.confirmPassword}
-                    errorMessage={errors.confirmPassword?.message}
-                    type="password"
-                    {...field}
-                  />
-                )}
-              />
-            </CardBody>
-            <CardFooter>
-              <Button
-                isLoading={loading}
-                type="submit"
-                color="primary"
-                fullWidth>
-                Register
-              </Button>
-            </CardFooter>
-          </form>
-          <p className="text-sm text-gray-600">
-            Already have an account?{' '}
-            <Link
-              href="/login"
-              type="button"
-              className="text-primary hover:text-primary underline">
-              Sign in
-            </Link>
-          </p>
-        </Card>
+    <motion.div
+      initial={{
+        y: 30,
+        opacity: 0,
+      }}
+      whileInView={{
+        y: 0,
+        opacity: 1,
+      }}
+      className="p-10">
+      <div className="mb-5 space-y-2">
+        <h1 className="text-4xl font-black">Create account</h1>
+        <p className="text-base text-gray-500">
+          Start creating short links in seconds
+        </p>
       </div>
-    </div>
+      <form onSubmit={handleSubmit(handleSubmitRegister)}>
+        <Controller
+          name="name"
+          control={control}
+          render={({ field }) => (
+            <Input
+              label="Fullname"
+              isInvalid={!!errors.name}
+              errorMessage={errors.name?.message}
+              className="mb-4"
+              type="text"
+              {...field}
+            />
+          )}
+        />
+        <Controller
+          name="email"
+          control={control}
+          render={({ field }) => (
+            <Input
+              label="Email address"
+              isInvalid={!!errors.email}
+              errorMessage={errors.email?.message}
+              className="mb-4"
+              type="email"
+              {...field}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="password"
+          render={({ field }) => (
+            <Input
+              label="Password"
+              isInvalid={!!errors.password}
+              errorMessage={errors.password?.message}
+              type={showPassword ? 'text' : 'password'}
+              className="mb-4"
+              endContent={
+                <Button
+                  variant="light"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowPassword(!showPassword)}>
+                  {showPassword ? (
+                    <Eye className="size-5 text-gray-400" />
+                  ) : (
+                    <EyeOff className="size-5 text-gray-400" />
+                  )}
+                </Button>
+              }
+              {...field}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <Input
+              label="Confirm Password"
+              isInvalid={!!errors.confirmPassword}
+              errorMessage={errors.confirmPassword?.message}
+              type={showConfirmPassword ? 'text' : 'password'}
+              className="mb-4"
+              endContent={
+                <Button
+                  variant="light"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  {showConfirmPassword ? (
+                    <Eye className="size-5 text-gray-400" />
+                  ) : (
+                    <EyeOff className="size-5 text-gray-400" />
+                  )}
+                </Button>
+              }
+              {...field}
+            />
+          )}
+        />
+        <Button
+          size="lg"
+          className="mt-6"
+          radius="sm"
+          isLoading={loading}
+          type="submit"
+          color="primary"
+          fullWidth>
+          Create Account
+        </Button>
+      </form>
+      <p className="mt-6 text-right text-xs font-medium text-gray-600">
+        Already have an account?{' '}
+        <Link
+          href="/login"
+          type="button"
+          className="text-primary hover:text-primary underline">
+          Sign in
+        </Link>
+      </p>
+    </motion.div>
   );
 }

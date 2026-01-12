@@ -12,6 +12,10 @@ import type { User } from 'better-auth';
 import { Plus, TextAlignStart, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
+import { authClient } from '@/libs/auth/auth-client';
 
 interface NavbarProps {
   user: User;
@@ -19,7 +23,23 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ user, handleClickAddLink }: NavbarProps) => {
-  const isCollapsed = false;
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            router.push('/');
+            router.refresh();
+          },
+        },
+      });
+    } catch {
+      toast.error('Logout Faield');
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 flex w-full border-gray-200 bg-white lg:border-b dark:border-gray-800 dark:bg-gray-900">
       <div className="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
@@ -30,11 +50,7 @@ export const Navbar = ({ user, handleClickAddLink }: NavbarProps) => {
             radius="sm"
             className="border border-gray-200"
             aria-label="Toggle Sidebar">
-            {isCollapsed ? (
-              <X className="size-5" />
-            ) : (
-              <TextAlignStart className="size-5" />
-            )}
+            <TextAlignStart className="size-5" />
           </Button>
 
           <Link href="/" className="lg:hidden">
@@ -122,6 +138,7 @@ export const Navbar = ({ user, handleClickAddLink }: NavbarProps) => {
               <DropdownItem
                 className="flex items-center justify-center"
                 variant="flat"
+                onPress={handleLogout}
                 color="danger"
                 key={'logout'}>
                 Logout

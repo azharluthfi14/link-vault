@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import { PUBLIC_ROUTES } from './constants';
+import { PUBLIC_ROUTES, RESERVED_ROUTES } from './constants';
 import { auth } from './libs/auth/auth';
 
 export async function proxy(request: NextRequest) {
@@ -25,6 +25,14 @@ export async function proxy(request: NextRequest) {
     const isAuthenticated = !!session?.user;
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
 
+    const isReservedRoute = RESERVED_ROUTES.some((route) =>
+      pathname.startsWith(route)
+    );
+
+    if (!isReservedRoute) {
+      return NextResponse.next();
+    }
+
     if (!isAuthenticated) {
       if (isPublicRoute) return NextResponse.next();
 
@@ -32,10 +40,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    if (isAuthenticated) {
-      if (isPublicRoute) {
-        return NextResponse.redirect(new URL('/home', request.url));
-      }
+    if (isAuthenticated && isPublicRoute) {
+      return NextResponse.redirect(new URL('/home', request.url));
     }
 
     return NextResponse.next();

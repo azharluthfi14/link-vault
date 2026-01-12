@@ -55,13 +55,17 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {isLoading ? (
-            <td colSpan={12} className="space-y-2 p-2">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <Skeleton key={i} className="w-full rounded-md">
-                  <div className="bg-default-200 h-10 rounded-md" />
-                </Skeleton>
-              ))}
-            </td>
+            Array.from({ length: 10 }).map((_, rowIndex) => (
+              <tr key={rowIndex} className="border-t border-gray-200">
+                {columns.map((_, colIndex) => (
+                  <td key={colIndex} className="px-6 py-2">
+                    <Skeleton className="w-full rounded-md">
+                      <div className="bg-default-200 h-8 rounded-md" />
+                    </Skeleton>
+                  </td>
+                ))}
+              </tr>
+            ))
           ) : table?.getRowModel()?.rows?.length === 0 ? (
             <tr>
               <td

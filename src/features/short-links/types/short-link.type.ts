@@ -2,6 +2,8 @@ import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 
 import type { linkStatusEnum, shortLinks } from '@/db/schemas';
 
+import type { ShortLinkErrorCode } from '../errors';
+
 export type ShortLink = InferSelectModel<typeof shortLinks>;
 export type InsertShortLink = InferInsertModel<typeof shortLinks>;
 export type ShortLinkStatus = (typeof linkStatusEnum.enumValues)[number];
@@ -39,3 +41,31 @@ export interface ShortLinkRepository {
 export type ShortLinkServiceDeps = {
   repo: ShortLinkRepository;
 };
+
+export type MutateShortLinkResult =
+  | {
+      success: true;
+      data: ShortLink;
+      message: string;
+    }
+  | {
+      success: false;
+      code: 'VALIDATION_ERROR';
+      fieldErrors: Record<string, string[]>;
+    }
+  | {
+      success: false;
+      code: ShortLinkErrorCode;
+      message: string;
+    };
+
+export type DeleteShortLinkResult =
+  | {
+      success: true;
+      message: string;
+    }
+  | {
+      success: false;
+      code: ShortLinkErrorCode;
+      message: string;
+    };

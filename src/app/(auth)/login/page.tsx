@@ -1,15 +1,11 @@
 'use client';
-import {
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  Input,
-} from '@heroui/react';
+
+import { Button, Input } from '@heroui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Eye, EyeClosed, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -19,13 +15,19 @@ import { authClient } from '@/libs/auth/auth-client';
 
 const loginSchema = z.object({
   email: z.email('Please enter a valid email address'),
-  password: z.string().min(8, 'Be at least 8 characters long'),
+  password: z
+    .string('Please enter your password')
+    .min(8, 'Be at least 8 characters long'),
 });
 
 type LoginInput = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const {
     control,
     handleSubmit,
@@ -45,95 +47,103 @@ export default function LoginPage() {
         password: getValues('password'),
       };
 
-      const response = await authClient.signIn.email(payload);
-
-      if (response.error) {
-        toast.error(response.error.message || 'Login failed');
-        return;
-      }
-
-      toast.success('Login successful!');
-      // router.push('/dashboard');
-      // router.refresh();
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error('Unexpected error:', error);
-      toast.error('An unexpected error occurred');
-    } finally {
+      await authClient.signIn.email(payload, {
+        onSuccess: () => {
+          router.push('/home');
+          router.refresh();
+        },
+        onError: (ctx) => {
+          toast.error(ctx.error.message ?? 'Login failed');
+          setLoading(false);
+        },
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Something went wrong');
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
-      <div className="w-full max-w-md">
-        {/* <div className="mb-8 flex flex-row items-center justify-center space-x-3">
-          <div className="bg-primary inline-flex h-16 w-16 items-center justify-center rounded-2xl text-white">
-            <Link2 className="h-8 w-8" />
-          </div>
-          <div>
-            <h1 className="mb-2 text-3xl">LinkVault</h1>
-            <p className="text-gray-600">
-              Short links, fully under your control
-            </p>
-          </div>
-        </div> */}
-        <Card shadow="none" className="border border-gray-100 p-4">
-          <CardHeader className="flex-col">
-            <h1 className="text-xl font-bold">Welcome back</h1>
-            <p>Sign in to manage your short links</p>
-          </CardHeader>
-          <form onSubmit={handleSubmit(handleSubmitLogin)}>
-            <CardBody className="space-y-4">
-              <Controller
-                name="email"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    label="Email address"
-                    isInvalid={!!errors.email}
-                    errorMessage={errors.email?.message}
-                    type="email"
-                    {...field}
-                  />
-                )}
-              />
-              <Controller
-                control={control}
-                name="password"
-                render={({ field }) => (
-                  <Input
-                    label="Password"
-                    isInvalid={!!errors.password}
-                    errorMessage={errors.password?.message}
-                    type="password"
-                    {...field}
-                  />
-                )}
-              />
-            </CardBody>
-            <CardFooter>
-              <Button
-                isLoading={loading}
-                type="submit"
-                color="primary"
-                fullWidth>
-                Login
-              </Button>
-            </CardFooter>
-          </form>
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link
-              href="/register"
-              type="button"
-              className="text-primary hover:text-primary underline">
-              Sign up
-            </Link>
-          </p>
-        </Card>
+    <motion.div
+      initial={{
+        y: 30,
+        opacity: 0,
+      }}
+      whileInView={{
+        y: 0,
+        opacity: 1,
+      }}
+      className="p-10">
+      <div className="space-y-2">
+        <h1 className="text-4xl font-black">Hello,</h1>
+        <h1 className="text-4xl font-black">Welcome Back</h1>
       </div>
-    </div>
+      <p className="my-3 text-base text-gray-500">
+        Sign in to manage your short links
+      </p>
+      <form className="mt-8" onSubmit={handleSubmit(handleSubmitLogin)}>
+        <Controller
+          name="email"
+          control={control}
+          render={({ field }) => (
+            <Input
+              label="Email address"
+              className="mb-4"
+              isInvalid={!!errors.email}
+              errorMessage={errors.email?.message}
+              type="email"
+              {...field}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="password"
+          render={({ field }) => (
+            <Input
+              label="Password"
+              className="mb-4"
+              isInvalid={!!errors.password}
+              errorMessage={errors.password?.message}
+              type={showPassword ? 'text' : 'password'}
+              {...field}
+              endContent={
+                <Button
+                  variant="light"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowPassword(!showPassword)}>
+                  {showPassword ? (
+                    <Eye className="size-5 text-gray-400" />
+                  ) : (
+                    <EyeOff className="size-5 text-gray-400" />
+                  )}
+                </Button>
+              }
+            />
+          )}
+        />
+        <Button
+          className="mt-5"
+          isLoading={loading}
+          type="submit"
+          radius="sm"
+          size="lg"
+          color="primary"
+          fullWidth>
+          Login
+        </Button>
+      </form>
+      <p className="mt-6 text-right text-xs font-medium text-gray-600">
+        Don't have an account?{' '}
+        <Link
+          href="/register"
+          type="button"
+          className="text-primary hover:text-primary underline">
+          Sign up
+        </Link>
+      </p>
+    </motion.div>
   );
 }

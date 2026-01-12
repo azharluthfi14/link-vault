@@ -11,7 +11,7 @@ export const SIDEBAR_MENUS: SidebarMenu[] = [
   },
   {
     id: 'short-link',
-    label: 'Short Link',
+    label: 'My Link',
     href: '/short-link',
     icon: <Link2 className="size-5" />,
   },

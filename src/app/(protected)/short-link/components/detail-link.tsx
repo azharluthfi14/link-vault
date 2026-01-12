@@ -2,15 +2,12 @@
 
 import {
   Button,
-  Chip,
-  cn,
   Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
   Link,
-  Snippet,
 } from '@heroui/react';
 import {
   AlertCircle,
@@ -20,7 +17,7 @@ import {
   Link2,
   MousePointer2,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import type { ShortLink } from '@/features/short-links';
 import { formatExpiresAt } from '@/utils';
@@ -29,21 +26,21 @@ interface DetailLinkProps {
   deleteAction: (formData: FormData) => void | Promise<void>;
   shortLink: ShortLink;
   isOpen: boolean;
-  onOpenChange: () => void;
-  handleEdit: () => void;
+  onOpenChange?: () => void;
+  openEditModal: () => void;
+  openDeleteModal: () => void;
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 
 export const DetailLink = ({
   deleteAction,
-  handleEdit,
+  openEditModal,
   onOpenChange,
+  openDeleteModal,
   shortLink,
   isOpen,
 }: DetailLinkProps) => {
-  const [openConfirm, setOpenConfirm] = useState(false);
-
   const deleteFormRef = useRef<HTMLFormElement>(null);
 
   if (!shortLink) return;
@@ -151,7 +148,7 @@ export const DetailLink = ({
                           <p className="mt-0.5 text-sm text-gray-500">
                             {shortLink.expiresAt
                               ? formatExpiresAt(shortLink.expiresAt.toString())
-                              : 'Selamanya'}
+                              : '-'}
                           </p>
                         </div>
                       </div>
@@ -181,15 +178,14 @@ export const DetailLink = ({
                   radius="sm"
                   onPress={() => {
                     onClose?.();
-                    handleEdit();
+                    openEditModal();
                   }}>
                   Edit Short Link
                 </Button>
-
                 <Button
                   onPress={() => {
-                    setOpenConfirm(true);
-                    onOpenChange?.();
+                    onClose?.();
+                    openDeleteModal();
                   }}
                   fullWidth
                   radius="sm"

@@ -11,5 +11,5 @@ export const RESERVED_ROUTES = [
   'static',
 ];
 
-export const PUBLIC_ROUTES = ['/', '/login', '/register'];
+export const PUBLIC_ROUTES = ['/login', '/register'];
 export const PROTECTED_ROUTES = ['/home'];

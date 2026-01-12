@@ -3,7 +3,7 @@
 import { cn, useDisclosure } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { User } from 'better-auth';
-import { type ReactNode, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 
 import { createShortLinkAction } from '@/features/short-links/actions/short-link.action';
@@ -27,7 +27,22 @@ export const ContentWrapper = ({
     formCreateLink,
     pendingCreateLink,
     resetStateCreateLink,
-  ] = useResettableActionState(createShortLinkAction, undefined);
+  ] = useResettableActionState(createShortLinkAction, null, {
+    onSuccess: (result) => {
+      if (result?.success) {
+        toast.success(result.message);
+        onClose();
+        resetStateCreateLink();
+        queryClient.invalidateQueries({ queryKey: ['short-links'] });
+      }
+    },
+    onError: (result) => {
+      if (!result?.success && result?.code !== 'VALIDATION_ERROR') {
+        toast.error(result?.message);
+        onClose();
+      }
+    },
+  });
 
   const handleClickAddLink = () => {
     onOpen();
@@ -37,16 +52,6 @@ export const ContentWrapper = ({
     onOpenChange();
     resetStateCreateLink();
   };
-
-  useEffect(() => {
-    if (stateCreateLink?.success) {
-      toast.success('Success create short link');
-      queueMicrotask(() => {
-        onClose();
-      });
-      queryClient.invalidateQueries({ queryKey: ['short-links'] });
-    }
-  }, [stateCreateLink]);
 
   return (
     <>
@@ -63,8 +68,12 @@ export const ContentWrapper = ({
         isOpen={isOpen}
         onOpenChange={handleOpenChange}
         isLoading={pendingCreateLink}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        errors={stateCreateLink?.message as any}
+        errors={
+          !stateCreateLink?.success &&
+          stateCreateLink?.code === 'VALIDATION_ERROR'
+            ? stateCreateLink.fieldErrors
+            : undefined
+        }
       />
     </>
   );

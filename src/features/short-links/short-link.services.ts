@@ -16,6 +16,21 @@ export class ShortLinkServices {
     this.repo = deps.repo;
   }
 
+  private computeStatus(link: ShortLink, input: UpdateShortLinkDto) {
+    const expiresAt = input.expiresAt ?? link.expiresAt;
+    const maxClicks = input.maxClicks ?? link.maxClicks;
+
+    if (expiresAt && expiresAt < new Date()) {
+      return 'expired';
+    }
+
+    if (maxClicks && link.clicks >= maxClicks) {
+      return 'disabled';
+    }
+
+    return 'active';
+  }
+
   async getById(id: string): Promise<ShortLink> {
     const link = await this.repo.findById(id);
     if (!link) {
@@ -110,13 +125,24 @@ export class ShortLinkServices {
       }
     }
 
-    if (shortLink.status === 'expired' && input.status === 'active') {
-      throw new ShortLinkError(ShortLinkErrorCode.INVALID_STATUS);
+    if (shortLink.status === 'expired' && !input.expiresAt) {
+      throw new ShortLinkError(ShortLinkErrorCode.EXPIRED);
     }
+
+    if (
+      input.maxClicks !== undefined &&
+      input.maxClicks !== null &&
+      input.maxClicks < shortLink.clicks
+    ) {
+      throw new ShortLinkError(ShortLinkErrorCode.MAX_CLICKS_REACHED);
+    }
+
+    const status = this.computeStatus(shortLink, input);
 
     const updated = await this.repo.update(shortLinkId, {
       ...input,
-      expiresAt: input.expiresAt ? new Date(input.expiresAt) : undefined,
+      expiresAt: input.expiresAt === undefined ? undefined : input.expiresAt,
+      status,
     });
 
     if (!updated) {
