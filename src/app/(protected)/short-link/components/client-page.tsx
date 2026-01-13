@@ -5,13 +5,13 @@ import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { useShortLinkDetail, useShortLinks } from '@/features/short-links';
 import {
   deleteShortLinkAction,
   updateShortLinkAction,
 } from '@/features/short-links/actions/short-link.action';
 import { useDebounce, useResettableActionState } from '@/hooks';
 
-import { useShortLinkDetail, useShortLinks } from '../hooks';
 import { ConfirmDeleteLink } from './confirm-delete';
 import { DetailLink } from './detail-link';
 import { EditLinkModal } from './edit-link';

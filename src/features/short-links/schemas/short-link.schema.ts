@@ -41,4 +41,17 @@ export const createShortLinkSchema = z.object({
   maxClicks: z.coerce.number().int().positive().optional(),
 });
 
-export type CreateLinkDto = z.infer<typeof createShortLinkSchema>;
+export const updateShortLinkSchema = createShortLinkSchema.partial();
+
+export const listShortLinkQueryParamsSchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(50).default(10),
+  search: z.string().trim().min(1).max(100).optional(),
+  status: z.enum(['active', 'disabled', 'expired']).optional(),
+});
+
+export type CreateShortLinkSchemaInput = z.infer<typeof createShortLinkSchema>;
+export type UpdateShortLinkSchemaInput = z.infer<typeof updateShortLinkSchema>;
+export type ListShortLinkQueryParamsInput = z.infer<
+  typeof listShortLinkQueryParamsSchema
+>;

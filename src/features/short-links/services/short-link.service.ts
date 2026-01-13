@@ -2,14 +2,17 @@ import { nanoid } from 'nanoid';
 
 import { RESERVED_ROUTES } from '@/constants';
 
-import type { CreateLinkDto, UpdateShortLinkDto } from './dto';
-import { ShortLinkError, ShortLinkErrorCode } from './errors';
+import { ShortLinkError, ShortLinkErrorCode } from '../errors';
+import type {
+  CreateShortLinkSchemaInput,
+  UpdateShortLinkSchemaInput,
+} from '../schemas';
 import type {
   LinkListParamsInput,
   ShortLink,
   ShortLinkRepository,
   ShortLinkServiceDeps,
-} from './types';
+} from '../types';
 
 export class ShortLinkServices {
   private readonly repo: ShortLinkRepository;
@@ -18,7 +21,7 @@ export class ShortLinkServices {
     this.repo = deps.repo;
   }
 
-  private computeStatus(link: ShortLink, input: UpdateShortLinkDto) {
+  private computeStatus(link: ShortLink, input: UpdateShortLinkSchemaInput) {
     const expiresAt = input.expiresAt ?? link.expiresAt;
     const maxClicks = input.maxClicks ?? link.maxClicks;
 
@@ -91,7 +94,10 @@ export class ShortLinkServices {
     };
   }
 
-  async create(userId: string, input: CreateLinkDto): Promise<ShortLink> {
+  async create(
+    userId: string,
+    input: CreateShortLinkSchemaInput
+  ): Promise<ShortLink> {
     const slug = input.slug ?? nanoid(7);
 
     const reservedSlugSet = new Set(
@@ -119,7 +125,7 @@ export class ShortLinkServices {
   async update(
     userId: string,
     shortLinkId: string,
-    input: UpdateShortLinkDto
+    input: UpdateShortLinkSchemaInput
   ): Promise<ShortLink> {
     const shortLink = await this.repo.findById(shortLinkId);
     if (!shortLink) {

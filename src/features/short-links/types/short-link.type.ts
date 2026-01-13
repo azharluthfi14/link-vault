@@ -16,6 +16,18 @@ export type LinkListParams = {
   status?: ShortLinkStatus;
 };
 
+export type ShortLinkListResponse = {
+  items: ShortLink[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+};
+
 export type LinkListParamsInput = Omit<LinkListParams, 'offset'> & {
   page?: number;
 };

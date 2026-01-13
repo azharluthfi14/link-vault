@@ -8,23 +8,17 @@ import {
   ShortLinkErrorCode,
   updateShortLinkSchema,
 } from '@/features/short-links';
-import {
-  createShortLinkSchema,
-  DrizzleShortLinkRepository,
-  ShortLinkError,
-  ShortLinkServices,
-} from '@/features/short-links';
+import { createShortLinkSchema, ShortLinkError } from '@/features/short-links';
 import { getSession } from '@/libs/auth/get-session';
 
+import { getShortLinkService } from '../services';
 import { mapShortLinkError } from '../utils';
 
 export type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; code: ShortLinkErrorCode; message: string };
 
-const shortLinkService = new ShortLinkServices({
-  repo: new DrizzleShortLinkRepository(),
-});
+const shortLinkService = getShortLinkService();
 
 export async function createShortLinkAction(
   _prevState: unknown,
@@ -73,7 +67,6 @@ export async function updateShortLinkAction(
     }
 
     const raw = Object.fromEntries(formData.entries());
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id: _id, ...payload } = raw;
 
     Object.entries(payload).forEach(([k, v]) => {

@@ -67,7 +67,7 @@ export const TableLink = ({
           <Link
             className="cursor-pointer text-xs hover:underline"
             isExternal
-            href={`http://localhost:3000/${data.getValue()}`}>
+            href={`${BASE_URL}/${data.getValue()}`}>
             {`${BASE_URL}/${data.getValue()}`}
           </Link>
         </Snippet>

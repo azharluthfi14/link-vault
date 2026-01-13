@@ -22,7 +22,7 @@ export default function Providers({ children }: { children: ReactNode }) {
         toastOptions={{
           classNames: {
             error: cn(
-              'bg-red-50! text-red-500! shadow-none! border border-red-100!'
+              'bg-red-50! text-danger! shadow-none! border border-red-100!'
             ),
             success: cn(
               'bg-emerald-50! text-emerald-500! shadow-none! border border-emerald-100!'

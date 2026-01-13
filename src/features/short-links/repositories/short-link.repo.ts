@@ -2,14 +2,13 @@ import { and, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { shortLinks } from '@/db/schemas';
-
 import type {
   InsertShortLink,
   LinkListParams,
   ShortLink,
   ShortLinkRepository,
   ShortLinkStatus,
-} from './types';
+} from '@/features/short-links';
 
 export class DrizzleShortLinkRepository implements ShortLinkRepository {
   async findById(id: string): Promise<ShortLink | null> {

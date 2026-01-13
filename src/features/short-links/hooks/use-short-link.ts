@@ -1,18 +1,12 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
-import type { LinkListQueryParams, ShortLink } from '@/features/short-links';
+import type {
+  ListShortLinkQueryParamsInput,
+  ShortLink,
+  ShortLinkListResponse,
+} from '@/features/short-links';
 
-export type ShortLinkListResponse = {
-  items: ShortLink[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-};
-
-export function useShortLinks(params?: Partial<LinkListQueryParams>) {
+export function useShortLinks(params?: Partial<ListShortLinkQueryParamsInput>) {
   const query = {
     page: params?.page ?? 1,
     limit: params?.limit ?? 10,
