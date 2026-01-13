@@ -194,7 +194,7 @@ export class ShortLinkServices {
 
   async delete(userId: string, shortLinkId: string): Promise<void> {
     const shortLink = await this.repo.findById(shortLinkId);
-    if (!shortLink) {
+    if (!shortLink || shortLink.deletedAt) {
       throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
     }
 
