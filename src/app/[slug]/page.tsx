@@ -1,10 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 
 import { RESERVED_ROUTES } from '@/constants';
-import {
-  DrizzleShortLinkRepository,
-  ShortLinkServices,
-} from '@/features/short-links';
+import { getShortLinkService } from '@/features/short-links/services';
 
 interface PageProps {
   params: Promise<{
@@ -12,13 +9,11 @@ interface PageProps {
   }>;
 }
 
-const service = new ShortLinkServices({
-  repo: new DrizzleShortLinkRepository(),
-});
-
 export default async function RedirectSlugLinkPage(props: PageProps) {
   const params = await props.params;
   const { slug } = params;
+
+  const shortLinkService = getShortLinkService();
 
   if (RESERVED_ROUTES.includes(slug?.toLowerCase())) {
     notFound();
@@ -28,9 +23,11 @@ export default async function RedirectSlugLinkPage(props: PageProps) {
     notFound();
   }
 
-  const link = await service.getByActiveSlug(slug).catch(() => notFound());
+  const link = await shortLinkService
+    .getByActiveSlug(slug)
+    .catch(() => notFound());
 
-  await service.recordClick(link.id);
+  await shortLinkService.recordClick(link.id);
   redirect(link.originalUrl);
 }
 
