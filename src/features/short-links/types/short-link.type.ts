@@ -1,6 +1,7 @@
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 
 import type { linkStatusEnum, shortLinks } from '@/db/schemas';
+import type { AuthErrorCode } from '@/libs/auth/auth-error';
 
 import type { ShortLinkErrorCode } from '../errors';
 
@@ -54,30 +55,35 @@ export type ShortLinkServiceDeps = {
   repo: ShortLinkRepository;
 };
 
-export type MutateShortLinkResult =
-  | {
-      success: true;
-      data: ShortLink;
-      message: string;
-    }
-  | {
-      success: false;
-      code: 'VALIDATION_ERROR';
-      fieldErrors: Record<string, string[]>;
-    }
-  | {
-      success: false;
-      code: ShortLinkErrorCode;
-      message: string;
-    };
+export type SuccessResultBase = {
+  success: true;
+  message: string;
+};
 
-export type DeleteShortLinkResult =
-  | {
-      success: true;
-      message: string;
-    }
-  | {
-      success: false;
-      code: ShortLinkErrorCode;
-      message: string;
-    };
+export type SuccessWithData<T> = SuccessResultBase & {
+  data: T;
+};
+
+export type SuccessNoData = SuccessResultBase & {
+  data?: never;
+};
+
+export type ValidationErrorResult = {
+  success: false;
+  code: 'VALIDATION_ERROR';
+  fieldErrors: Record<string, string[]>;
+};
+
+export type DomainErrorResult = {
+  success: false;
+  code: ShortLinkErrorCode | AuthErrorCode;
+  message: string;
+};
+
+export type MutateResult<T> =
+  | SuccessWithData<T>
+  | SuccessNoData
+  | ValidationErrorResult
+  | DomainErrorResult;
+
+export type MutateShortLinkResponse = MutateResult<ShortLink>;

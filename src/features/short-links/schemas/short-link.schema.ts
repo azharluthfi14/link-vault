@@ -20,7 +20,6 @@ export const createShortLinkSchema = z.object({
     .refine((slug) => !slug || !reservedSlugSet.has(slug.toLowerCase()), {
       message: 'This slug is reserved and cannot be used',
     }),
-
   originalUrl: z.url('Invalid URL format'),
   description: z
     .string()
