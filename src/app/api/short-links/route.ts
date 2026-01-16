@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { listShortLinkQueryParamsSchema } from '@/features/short-links';
 import { getShortLinkService } from '@/features/short-links/services';
 import { getSession } from '@/libs/auth/get-session';
-import { handleApiError } from '@/libs/errors/handle-api-error';
+import { handleApiError } from '@/libs/handlers/api-error.handler';
 
 const shortLinkService = getShortLinkService();
 

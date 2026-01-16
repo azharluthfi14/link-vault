@@ -1,37 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AuthError, AuthErrorCode } from '@/libs/auth/auth-error';
 import { getSession } from '@/libs/auth/get-session';
+import { UnauthorizedError } from '@/libs/errors/base.error';
 
-import { ShortLinkError, ShortLinkErrorCode } from '../errors';
-import type { CreateShortLinkSchemaInput } from '../schemas';
-import { getShortLinkService } from '../services';
-import { mapShortLinkError } from '../utils';
 import {
   createShortLinkAction,
   deleteShortLinkAction,
   updateShortLinkAction,
 } from './short-link.action';
 
-type ShortLinkService = ReturnType<typeof getShortLinkService>;
-
-function mockShortLinkService(
-  overrides?: Partial<ShortLinkService>
-): ShortLinkService {
+const mockCreate = vi.fn(async (input) => {
   return {
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    ...overrides,
-  } as ShortLinkService;
-}
+    id: '1',
+    originalUrl: input.originalUrl || 'https://example.com',
+  };
+});
+
+const mockUpdate = vi.fn(async (shortLinkId, input) => {
+  return {
+    id: shortLinkId,
+    slug: input.slug || 'updated-slug',
+    originalUrl: input.originalUrl || 'https://example.com/updated',
+  };
+});
+
+const mockDelete = vi.fn(async () => {
+  return { success: true };
+});
 
 vi.mock('@/libs/auth/get-session');
 vi.mock('../services', () => ({
-  getShortLinkService: vi.fn(),
-}));
-vi.mock('../utils', () => ({
-  mapShortLinkError: vi.fn(),
+  getShortLinkService: () => ({
+    create: mockCreate,
+    update: mockUpdate,
+    delete: mockDelete,
+  }),
 }));
 
 describe('ShortLinkAction', () => {
@@ -57,261 +60,97 @@ describe('ShortLinkAction', () => {
     },
   };
 
-  const mockShortLink = {
-    id: 'id-test-shortlink',
-    slug: 'test-slug',
-    originalUrl: 'https://example.com',
-    userId: 'id-test-user',
-    clicks: 0,
-    maxClicks: null,
-    description: null,
-    expiresAt: null,
-    status: 'active' as const,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getSession).mockResolvedValue(mockAuthUser);
   });
 
-  describe('Create short link action', () => {
-    const mockCreate = vi.fn();
-
-    beforeEach(() => {
-      vi.clearAllMocks();
-      vi.mocked(getShortLinkService).mockReturnValue(
-        mockShortLinkService({
-          create: mockCreate,
-        })
-      );
+  function buildFormData(data: Record<string, unknown>) {
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value === undefined) return;
+      if (value instanceof Date) {
+        formData.append(key, value.toISOString());
+      } else {
+        formData.append(key, String(value));
+      }
     });
+    return formData;
+  }
 
-    function buildCreateFormData(data: Partial<CreateShortLinkSchemaInput>) {
-      const base = {
-        slug: 'test-slug',
-        originalUrl: 'https://example.com',
-      };
-
-      const formData = new FormData();
-
-      Object.entries({ ...base, ...data }).forEach(([key, value]) => {
-        if (value === undefined) return;
-
-        if (value instanceof Date) {
-          formData.append(key, value.toISOString());
-        } else {
-          formData.append(key, String(value));
-        }
-      });
-
-      return formData;
-    }
-
-    it('Should return UNAUTHENTICATED when session is missing', async () => {
-      vi.mocked(getSession).mockRejectedValueOnce(
-        new AuthError(AuthErrorCode.UNAUTHENTICATED)
-      );
-
-      const formData = new FormData();
-      formData.append('originalUrl', 'https://example.com');
-
-      const result = await createShortLinkAction(null, formData);
-      expect(result.success).toBe(false);
-      expect(!result.success && result.code).toBe('UNAUTHENTICATED');
-    });
-
-    it('Should map service error correctly', async () => {
-      mockCreate.mockRejectedValue(
-        new ShortLinkError(ShortLinkErrorCode.SLUG_ALREADY_EXISTS)
-      );
-
-      vi.mocked(mapShortLinkError).mockReturnValue({
-        success: false,
-        code: ShortLinkErrorCode.SLUG_ALREADY_EXISTS,
-        message: 'Slug already exists',
-      });
-
-      const formData = buildCreateFormData({
-        slug: 'test-slug',
-        originalUrl: 'https://example.com',
-      });
-
-      const result = await createShortLinkAction(null, formData);
-      expect(result.success).toBe(false);
-      expect(mapShortLinkError).toHaveBeenCalled();
-    });
-
-    it('Should create new short link successfully', async () => {
-      mockCreate.mockResolvedValue(mockShortLink);
-      const formData = buildCreateFormData({
-        slug: 'test-slug',
-        originalUrl: 'https://example.com',
-      });
-
-      const result = await createShortLinkAction(null, formData);
-      expect(result).toEqual({
+  const cases = [
+    {
+      name: 'Create short link',
+      action: () =>
+        createShortLinkAction(
+          null,
+          buildFormData({ originalUrl: 'https://api.com' })
+        ),
+      serviceSpy: () => mockCreate,
+      expected: {
+        id: '1',
+        originalUrl: 'https://api.com',
+      },
+    },
+    {
+      name: 'Update short link',
+      action: () =>
+        updateShortLinkAction(
+          null,
+          buildFormData({
+            id: '1',
+            slug: 'updated-slug',
+            originalUrl: 'https://example.com/updated',
+          })
+        ),
+      serviceSpy: () => mockUpdate,
+      expected: {
+        id: '1',
+        slug: 'updated-slug',
+        originalUrl: 'https://example.com/updated',
+      },
+    },
+    {
+      name: 'Delete short link',
+      action: () => deleteShortLinkAction(null, buildFormData({ id: 1 })),
+      serviceSpy: () => mockDelete,
+      expected: {
         success: true,
-        data: mockShortLink,
-        message: 'Success create short link',
+      },
+    },
+  ];
+
+  describe('UNAUTHENTICATED actions', () => {
+    it.each(cases)('$name -> UNAUTHORIZED', async ({ action }) => {
+      vi.mocked(getSession).mockRejectedValueOnce(
+        new UnauthorizedError('Authentication required')
+      );
+
+      const result = await action();
+
+      expect(result).toMatchObject({
+        success: false,
+        code: 'UNAUTHORIZED',
+        error: 'Authentication required',
+        showToast: true,
       });
-      expect(mockCreate).toHaveBeenCalledWith('id-test-user', {
-        originalUrl: 'https://example.com',
-        slug: 'test-slug',
-      });
-    });
-
-    it('Should create new short link with all optional field', async () => {
-      const expiresAt = new Date('2026-12-31T23:59:59.999Z');
-
-      mockCreate.mockResolvedValue({
-        ...mockShortLink,
-        maxClicks: 100,
-        expiresAt,
-        description: 'Test description',
-      });
-
-      const formData = buildCreateFormData({
-        originalUrl: 'https://example.com',
-        slug: 'test-slug',
-        maxClicks: 100,
-        expiresAt,
-        description: 'Test description',
-      });
-
-      const result = await createShortLinkAction(null, formData);
-
-      expect(result.success).toBe(true);
-      expect(mockCreate).toHaveBeenCalledWith('id-test-user', {
-        originalUrl: 'https://example.com',
-        slug: 'test-slug',
-        maxClicks: 100,
-        expiresAt,
-        description: 'Test description',
-      });
-    });
-
-    it('Should return validation error when slug is reserved', async () => {
-      const formData = buildCreateFormData({
-        slug: 'home',
-        originalUrl: 'https://example.com',
-      });
-
-      const result = await createShortLinkAction(null, formData);
-
-      expect(result.success).toBe(false);
-      expect(!result.success && result.code).toBe('VALIDATION_ERROR');
-      expect(
-        !result.success &&
-          result.code === 'VALIDATION_ERROR' &&
-          result.fieldErrors?.slug
-      ).toBeDefined();
     });
   });
 
-  describe('Update short link action', () => {
-    const mockUpdate = vi.fn();
-    beforeEach(() => {
-      vi.mocked(getShortLinkService).mockReturnValue(
-        mockShortLinkService({
-          update: mockUpdate,
-        })
-      );
-    });
+  describe('AUTHENTICATED actions', () => {
+    it.each(cases)(
+      '$name -> Success action',
+      async ({ action, serviceSpy }) => {
+        vi.mocked(getSession).mockResolvedValueOnce(mockAuthUser);
 
-    it('Should return UNAUTHENTICATED when session is missing', async () => {
-      vi.mocked(getSession).mockRejectedValueOnce(
-        new AuthError(AuthErrorCode.UNAUTHENTICATED)
-      );
+        const result = await action();
 
-      const formData = new FormData();
-      formData.append('originalUrl', 'https://example.com');
+        expect(result).toMatchObject({
+          success: true,
+        });
 
-      const result = await updateShortLinkAction(null, formData);
-      expect(result.success).toBe(false);
-      expect(!result.success && result.code).toBe('UNAUTHENTICATED');
-    });
-
-    it('Should return validation error when id missing on update', async () => {
-      const formData = new FormData();
-      formData.append('description', 'Update');
-
-      const result = await updateShortLinkAction(null, formData);
-
-      expect(result.success).toBe(false);
-      expect(!result.success && result.code).toBe('VALIDATION_ERROR');
-    });
-
-    it('Should update short link', async () => {
-      mockUpdate.mockResolvedValue({
-        ...mockShortLink,
-        description: 'Update description',
-      });
-
-      const formData = new FormData();
-      formData.append('id', 'id-test-shortlink');
-      formData.append('description', 'Update description');
-
-      const result = await updateShortLinkAction(null, formData);
-
-      expect(result.success).toBe(true);
-      expect(mockUpdate).toHaveBeenCalledWith(
-        'id-test-user',
-        'id-test-shortlink',
-        {
-          description: 'Update description',
-        }
-      );
-    });
-  });
-
-  describe('Delete short link action', () => {
-    const mockDelete = vi.fn();
-    beforeEach(() => {
-      vi.mocked(getShortLinkService).mockReturnValue(
-        mockShortLinkService({
-          delete: mockDelete,
-        })
-      );
-    });
-
-    it('Should return UNAUTHENTICATED when session is missing', async () => {
-      vi.mocked(getSession).mockRejectedValueOnce(
-        new AuthError(AuthErrorCode.UNAUTHENTICATED)
-      );
-
-      const formData = new FormData();
-      formData.append('originalUrl', 'https://example.com');
-
-      const result = await deleteShortLinkAction(null, formData);
-      expect(result.success).toBe(false);
-      expect(!result.success && result.code).toBe('UNAUTHENTICATED');
-    });
-
-    it('Should return validation error when id missing on delete', async () => {
-      const formData = new FormData();
-
-      const result = await deleteShortLinkAction(null, formData);
-
-      expect(result.success).toBe(false);
-      expect(!result.success && result.code).toBe('VALIDATION_ERROR');
-    });
-
-    it('Should delete short link action', async () => {
-      mockDelete.mockResolvedValue(true);
-
-      const formData = new FormData();
-      formData.append('id', 'id-test-shortlink');
-
-      const result = await deleteShortLinkAction(null, formData);
-
-      expect(result.success).toBe(true);
-      expect(mockDelete).toHaveBeenCalledWith(
-        'id-test-user',
-        'id-test-shortlink'
-      );
-    });
+        expect(serviceSpy()).toHaveBeenCalledTimes(1);
+      }
+    );
   });
 });

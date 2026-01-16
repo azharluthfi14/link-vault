@@ -10,4 +10,7 @@ export const mockShortLinkRepository = {
   incrementClicks: vi.fn(),
   softDelete: vi.fn(),
   countByUser: vi.fn(),
+  sumClicks: vi.fn(),
+  getClicksGroupedByDay: vi.fn(),
+  countInactiveLinkByUser: vi.fn(),
 };

@@ -15,11 +15,12 @@ export function useShortLinks(params?: Partial<ListShortLinkQueryParamsInput>) {
   };
 
   return useQuery<ShortLinkListResponse>({
-    queryKey: ['short-links', params],
+    queryKey: ['short-links', query],
     queryFn: async () => {
       const qs = new URLSearchParams(
         Object.entries(query).map(([k, v]) => [k, String(v)])
       ).toString();
+
       const res = await fetch(`/api/short-links?${qs}`);
 
       if (!res.ok) {

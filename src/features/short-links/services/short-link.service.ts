@@ -2,17 +2,19 @@ import { nanoid } from 'nanoid';
 
 import { RESERVED_ROUTES } from '@/constants';
 
-import { ShortLinkError, ShortLinkErrorCode } from '../errors';
+import { ShortLinkErrors } from '../errors';
 import type {
   CreateShortLinkSchemaInput,
   UpdateShortLinkSchemaInput,
 } from '../schemas';
 import type {
+  DbShortLinkStatus,
   LinkListParamsInput,
   ShortLink,
   ShortLinkRepository,
   ShortLinkServiceDeps,
 } from '../types';
+import { computeShortLinkStatus, isShortLinkExpired } from '../utils';
 
 export class ShortLinkServices {
   private readonly repo: ShortLinkRepository;
@@ -39,7 +41,7 @@ export class ShortLinkServices {
   async getById(id: string): Promise<ShortLink> {
     const link = await this.repo.findById(id);
     if (!link) {
-      throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
+      throw ShortLinkErrors.notFound(id);
     }
 
     return link;
@@ -48,17 +50,15 @@ export class ShortLinkServices {
   async getByActiveSlug(slug: string): Promise<ShortLink> {
     const link = await this.repo.findByActiveSlug(slug);
     if (!link) {
-      throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
+      throw ShortLinkErrors.notFound(slug);
     }
 
-    if (link.expiresAt && link.expiresAt < new Date()) {
-      await this.repo.update(link.id, { status: 'expired' });
-      throw new ShortLinkError(ShortLinkErrorCode.EXPIRED);
+    if (link.status !== 'active') {
+      throw ShortLinkErrors.disabledShortLink(link.id);
     }
 
-    if (link.maxClicks !== null && link.clicks >= link.maxClicks) {
-      await this.repo.update(link.id, { status: 'expired' });
-      throw new ShortLinkError(ShortLinkErrorCode.MAX_CLICKS_REACHED);
+    if (isShortLinkExpired(link)) {
+      throw ShortLinkErrors.expired(link.id);
     }
 
     return link;
@@ -70,19 +70,31 @@ export class ShortLinkServices {
     const safeLimit = Math.min(limit, 50);
     const offset = (page - 1) * safeLimit;
 
-    const [items, total] = await Promise.all([
-      this.repo.listByUser({
-        userId,
-        limit: safeLimit,
-        offset,
-        search,
-        status,
-      }),
-      this.repo.countByUser(userId, search, status),
-    ]);
+    const dbStatus: DbShortLinkStatus | undefined =
+      status === 'disabled' ? 'disabled' : undefined;
+
+    const allItems = await this.repo.listByUser({
+      userId,
+      limit: 1000,
+      offset: 0,
+      search,
+      status: dbStatus,
+    });
+
+    const withComputedStatus = allItems.map((link) => ({
+      ...link,
+      status: computeShortLinkStatus(link),
+    }));
+
+    const filteredItems = status
+      ? withComputedStatus.filter((l) => l.status === status)
+      : withComputedStatus;
+
+    const paginatedItems = filteredItems.slice(offset, offset + safeLimit);
+    const total = filteredItems.length;
 
     return {
-      items,
+      items: paginatedItems,
       meta: {
         page,
         limit: safeLimit,
@@ -105,12 +117,12 @@ export class ShortLinkServices {
     );
 
     if (reservedSlugSet.has(slug.toLowerCase())) {
-      throw new ShortLinkError(ShortLinkErrorCode.RESERVED_SLUG);
+      throw ShortLinkErrors.reservedSlug(slug);
     }
 
     const exists = await this.repo.slugExists(slug);
     if (exists) {
-      throw new ShortLinkError(ShortLinkErrorCode.SLUG_ALREADY_EXISTS);
+      throw ShortLinkErrors.slugExists(slug);
     }
 
     return this.repo.create({
@@ -129,22 +141,18 @@ export class ShortLinkServices {
   ): Promise<ShortLink> {
     const shortLink = await this.repo.findById(shortLinkId);
     if (!shortLink) {
-      throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
+      throw ShortLinkErrors.notFound(shortLinkId);
     }
 
     if (shortLink?.userId !== userId) {
-      throw new ShortLinkError(ShortLinkErrorCode.FORBIDDEN);
+      throw ShortLinkErrors.forbidden();
     }
 
     if (input.slug && input.slug !== shortLink.slug) {
       const exists = await this.repo.slugExists(input.slug);
       if (exists) {
-        throw new ShortLinkError(ShortLinkErrorCode.SLUG_ALREADY_EXISTS);
+        throw ShortLinkErrors.slugExists(input?.slug);
       }
-    }
-
-    if (shortLink.status === 'expired' && !input.expiresAt) {
-      throw new ShortLinkError(ShortLinkErrorCode.EXPIRED);
     }
 
     if (
@@ -152,19 +160,16 @@ export class ShortLinkServices {
       input.maxClicks !== null &&
       input.maxClicks < shortLink.clicks
     ) {
-      throw new ShortLinkError(ShortLinkErrorCode.MAX_CLICKS_REACHED);
+      throw ShortLinkErrors.maxClicks(shortLinkId);
     }
-
-    const status = this.computeStatus(shortLink, input);
 
     const updated = await this.repo.update(shortLinkId, {
       ...input,
       expiresAt: input.expiresAt === undefined ? undefined : input.expiresAt,
-      status,
     });
 
     if (!updated) {
-      throw new ShortLinkError(ShortLinkErrorCode.INVALID_URL);
+      throw ShortLinkErrors.invalidUrl(shortLinkId);
     }
 
     return updated;
@@ -178,15 +183,11 @@ export class ShortLinkServices {
     const shortLink = await this.repo.findById(shortLinkId);
 
     if (!shortLink) {
-      throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
+      throw ShortLinkErrors.notFound(shortLinkId);
     }
 
     if (shortLink.userId !== userId) {
-      throw new ShortLinkError(ShortLinkErrorCode.FORBIDDEN);
-    }
-
-    if (shortLink.status === 'expired') {
-      throw new ShortLinkError(ShortLinkErrorCode.INVALID_STATUS);
+      throw ShortLinkErrors.forbidden();
     }
 
     await this.repo.update(shortLinkId, { status });
@@ -195,11 +196,11 @@ export class ShortLinkServices {
   async delete(userId: string, shortLinkId: string): Promise<void> {
     const shortLink = await this.repo.findById(shortLinkId);
     if (!shortLink || shortLink.deletedAt) {
-      throw new ShortLinkError(ShortLinkErrorCode.NOT_FOUND);
+      throw ShortLinkErrors.notFound(shortLink?.slug);
     }
 
     if (shortLink.userId !== userId) {
-      throw new ShortLinkError(ShortLinkErrorCode.FORBIDDEN);
+      throw ShortLinkErrors.forbidden();
     }
 
     await this.repo.softDelete(shortLinkId);
@@ -209,7 +210,11 @@ export class ShortLinkServices {
     const success = await this.repo.incrementClicks(shortLinkId);
 
     if (!success) {
-      throw new ShortLinkError(ShortLinkErrorCode.MAX_CLICKS_REACHED);
+      throw ShortLinkErrors.maxClicks(shortLinkId);
     }
+  }
+
+  async sumClicks(userId: string) {
+    return this.repo.sumClicks(userId);
   }
 }

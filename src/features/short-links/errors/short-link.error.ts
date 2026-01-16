@@ -1,42 +1,66 @@
-export enum ShortLinkErrorCode {
-  NOT_FOUND = 'NOT_FOUND',
-  FORBIDDEN = 'FORBIDDEN',
-  SLUG_ALREADY_EXISTS = 'SLUG_ALREADY_EXISTS',
-  INVALID_STATUS = 'INVALID_STATUS',
-  EXPIRED = 'EXPIRED',
-  MAX_CLICKS_REACHED = 'MAX_CLICKS_REACHED',
-  INVALID_URL = 'INVALID_URL',
-  RESERVED_SLUG = 'RESERVED_SLUG',
-}
+import {
+  AppError,
+  BadRequestError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+} from '@/libs/errors/base.error';
 
-export const ShortLinkErrorMessage: Record<ShortLinkErrorCode, string> = {
-  NOT_FOUND: 'Short link not found',
-  FORBIDDEN: 'You do not have permission to access this link',
-  SLUG_ALREADY_EXISTS: 'This slug is already taken',
-  INVALID_STATUS: 'Link status is invalid',
-  EXPIRED: 'This link has expired',
-  MAX_CLICKS_REACHED: 'This link has reached its maximum clicks',
-  INVALID_URL: 'The provided URL is invalid',
-  RESERVED_SLUG: 'Slug conflicts with system routes',
-};
+export class ShortLinkExpiredError extends AppError {
+  readonly code = 'SHORT_LINK_EXPIRED';
+  readonly statusCode = 410;
 
-export const ShortLinkErrorStatus: Record<ShortLinkErrorCode, number> = {
-  NOT_FOUND: 404,
-  FORBIDDEN: 403,
-  SLUG_ALREADY_EXISTS: 409,
-  INVALID_STATUS: 410,
-  EXPIRED: 410,
-  MAX_CLICKS_REACHED: 410,
-  INVALID_URL: 400,
-  RESERVED_SLUG: 403,
-};
-
-export class ShortLinkError extends Error {
-  public readonly statusCode: number;
-
-  constructor(public readonly code: ShortLinkErrorCode) {
-    super(ShortLinkErrorMessage[code]);
-    this.name = 'ShortLinkError';
-    this.statusCode = ShortLinkErrorStatus[code];
+  constructor(id: string) {
+    super(`Short link '${id}' has expired`, { id });
   }
 }
+
+export class MaxClicksReachedError extends AppError {
+  readonly code = 'MAX_CLICKS_REACHED';
+  readonly statusCode = 410;
+
+  constructor(id: string) {
+    super(`Short link has reached maximum clicks`, { id });
+  }
+}
+
+export class ReservedSlugError extends AppError {
+  readonly code = 'RESERVED_SLUG';
+  readonly statusCode = 403;
+
+  constructor(slug: string) {
+    super(`Slug is reserved`, { slug });
+  }
+}
+
+export class InvalidStatusShortLink extends AppError {
+  readonly code = 'INVALID_STATUS';
+  readonly statusCode = 401;
+
+  constructor(status: string) {
+    super(`Short link status invalid `, { status });
+  }
+}
+
+export class DisabledStatusShortLink extends AppError {
+  readonly code = 'SHORT_LINK_DISABLED';
+  readonly statusCode = 401;
+
+  constructor(id: string) {
+    super(`Short link status disabled `, { id });
+  }
+}
+
+export const ShortLinkErrors = {
+  notFound: (id?: string) => new NotFoundError(`Short link ${id}  not found`),
+  forbidden: () =>
+    new ForbiddenError('You do not have permission to access this link'),
+  slugExists: (slug: string) =>
+    new ConflictError(`Slug '${slug}' already exists`, 'slug'),
+  invalidUrl: (url: string) => new BadRequestError(`Invalid URL: ${url}`),
+  expired: (id: string) => new ShortLinkExpiredError(id),
+  maxClicks: (slug: string) => new MaxClicksReachedError(slug),
+  reservedSlug: (slug: string) => new ReservedSlugError(slug),
+  invalidStatus: (status: string) => new InvalidStatusShortLink(status),
+  disabledShortLink: (id: string) => new DisabledStatusShortLink(id),
+};

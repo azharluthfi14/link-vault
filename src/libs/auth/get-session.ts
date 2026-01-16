@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
 
 import { auth } from './auth';
-import { AuthError, AuthErrorCode } from './auth-error';
+import { AuthErrors } from './auth-error';
 
 export async function getSession() {
   const session = await auth.api.getSession({
@@ -9,7 +9,7 @@ export async function getSession() {
   });
 
   if (!session || !session.user) {
-    throw new AuthError(AuthErrorCode.UNAUTHENTICATED);
+    throw AuthErrors.unauthenticated();
   }
 
   return session;

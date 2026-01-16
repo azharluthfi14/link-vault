@@ -93,7 +93,7 @@ export const CreateLinkModal = ({
                       name="expiresAt"
                       label="Expires At"
                       hideTimeZone
-                      minValue={now(getLocalTimeZone()).add({ days: 1 })}
+                      // minValue={now(getLocalTimeZone()).add({ days: 1 })}
                       defaultValue={now(getLocalTimeZone()).add({ days: 1 })}
                       isInvalid={!!errors?.expiresAt}
                       errorMessage={errors?.expiresAt?.[0]}

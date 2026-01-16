@@ -1,20 +1,27 @@
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 
 import type { linkStatusEnum, shortLinks } from '@/db/schemas';
-import type { AuthErrorCode } from '@/libs/auth/auth-error';
 
-import type { ShortLinkErrorCode } from '../errors';
+export type ComputedStatus = 'active' | 'disabled' | 'expired';
 
 export type ShortLink = InferSelectModel<typeof shortLinks>;
 export type InsertShortLink = InferInsertModel<typeof shortLinks>;
-export type ShortLinkStatus = (typeof linkStatusEnum.enumValues)[number];
+export type DbShortLinkStatus = (typeof linkStatusEnum.enumValues)[number];
 
 export type LinkListParams = {
   userId: string;
   limit: number;
   offset: number;
   search?: string;
-  status?: ShortLinkStatus;
+  status?: ComputedStatus;
+};
+
+export type LinkListRepoParams = {
+  userId: string;
+  limit: number;
+  offset: number;
+  search?: string;
+  status?: DbShortLinkStatus;
 };
 
 export type ShortLinkListResponse = {
@@ -27,6 +34,15 @@ export type ShortLinkListResponse = {
     hasNextPage: boolean;
     hasPrevPage: boolean;
   };
+};
+
+export type ShortLinkSummary = {
+  totalLinks: number;
+  activeLinks: number;
+  disabledLinks: number;
+  expiredLinks: number;
+  totalClicks: number;
+  clicksChart: { date: string; clicks: number }[];
 };
 
 export type LinkListParamsInput = Omit<LinkListParams, 'offset'> & {
@@ -47,43 +63,16 @@ export interface ShortLinkRepository {
   countByUser(
     userId: string,
     search?: string,
-    status?: ShortLinkStatus
+    status?: DbShortLinkStatus
   ): Promise<number>;
+  sumClicks(userId: string): Promise<number>;
+  getClicksGroupedByDay(
+    userId: string,
+    days: number
+  ): Promise<{ date: string; clicks: number }[]>;
+  countInactiveLinkByUser(userId: string): Promise<number>;
 }
 
 export type ShortLinkServiceDeps = {
   repo: ShortLinkRepository;
 };
-
-export type SuccessResultBase = {
-  success: true;
-  message: string;
-};
-
-export type SuccessWithData<T> = SuccessResultBase & {
-  data: T;
-};
-
-export type SuccessNoData = SuccessResultBase & {
-  data?: never;
-};
-
-export type ValidationErrorResult = {
-  success: false;
-  code: 'VALIDATION_ERROR';
-  fieldErrors: Record<string, string[]>;
-};
-
-export type DomainErrorResult = {
-  success: false;
-  code: ShortLinkErrorCode | AuthErrorCode;
-  message: string;
-};
-
-export type MutateResult<T> =
-  | SuccessWithData<T>
-  | SuccessNoData
-  | ValidationErrorResult
-  | DomainErrorResult;
-
-export type MutateShortLinkResponse = MutateResult<ShortLink>;

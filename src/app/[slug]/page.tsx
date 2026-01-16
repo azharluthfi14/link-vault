@@ -3,15 +3,14 @@ import { notFound, redirect } from 'next/navigation';
 import { RESERVED_ROUTES } from '@/constants';
 import { getShortLinkService } from '@/features/short-links/services';
 
-interface PageProps {
-  params: Promise<{
-    slug: string;
-  }>;
-}
+type Params = Promise<{ slug: string }>;
 
-export default async function RedirectSlugLinkPage(props: PageProps) {
-  const params = await props.params;
-  const { slug } = params;
+export default async function RedirectSlugLinkPage({
+  params,
+}: {
+  params: Params;
+}) {
+  const { slug } = await params;
 
   const shortLinkService = getShortLinkService();
 
@@ -26,10 +25,9 @@ export default async function RedirectSlugLinkPage(props: PageProps) {
   const link = await shortLinkService
     .getByActiveSlug(slug)
     .catch(() => notFound());
-
   await shortLinkService.recordClick(link.id);
   redirect(link.originalUrl);
 }
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
-export const dynamicParams = true;

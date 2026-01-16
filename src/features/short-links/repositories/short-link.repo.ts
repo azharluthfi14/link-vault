@@ -1,13 +1,24 @@
-import { and, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  ilike,
+  isNotNull,
+  isNull,
+  lt,
+  or,
+  sql,
+} from 'drizzle-orm';
 
 import { db } from '@/db';
 import { shortLinks } from '@/db/schemas';
 import type {
+  DbShortLinkStatus,
   InsertShortLink,
-  LinkListParams,
+  LinkListRepoParams,
   ShortLink,
   ShortLinkRepository,
-  ShortLinkStatus,
 } from '@/features/short-links';
 
 export class DrizzleShortLinkRepository implements ShortLinkRepository {
@@ -37,7 +48,7 @@ export class DrizzleShortLinkRepository implements ShortLinkRepository {
     return link ?? null;
   }
 
-  async listByUser(params: LinkListParams): Promise<ShortLink[]> {
+  async listByUser(params: LinkListRepoParams): Promise<ShortLink[]> {
     const { userId, limit, offset, search, status } = params;
 
     const conditions = [
@@ -50,7 +61,7 @@ export class DrizzleShortLinkRepository implements ShortLinkRepository {
     }
 
     if (search) {
-      conditions.push(ilike(shortLinks.slug, `%${search}%`));
+      conditions.push(ilike(shortLinks.slug, `%${search}`));
     }
 
     return db
@@ -132,7 +143,7 @@ export class DrizzleShortLinkRepository implements ShortLinkRepository {
   async countByUser(
     userId: string,
     search?: string,
-    status?: ShortLinkStatus
+    status?: DbShortLinkStatus
   ): Promise<number> {
     const conditions = [
       eq(shortLinks.userId, userId),
@@ -153,5 +164,63 @@ export class DrizzleShortLinkRepository implements ShortLinkRepository {
       .where(and(...conditions));
 
     return Number(result.count);
+  }
+
+  async sumClicks(userId: string): Promise<number> {
+    const [result] = await db
+      .select({ sum: sql<number>`sum(${shortLinks.clicks})` })
+      .from(shortLinks)
+      .where(and(eq(shortLinks.userId, userId), isNull(shortLinks.deletedAt)));
+
+    return Number(result.sum ?? 0);
+  }
+
+  async getClicksGroupedByDay(userId: string, days: number = 7) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (days - 1));
+
+    const results = await db
+      .select({
+        date: sql<string>`date(${shortLinks.createdAt})`,
+        clicks: sql<number>`sum(${shortLinks.clicks})`,
+      })
+      .from(shortLinks)
+      .where(
+        and(
+          eq(shortLinks.userId, userId),
+          isNull(shortLinks.deletedAt),
+          sql`${shortLinks.createdAt} >= ${startDate}`
+        )
+      )
+      .groupBy(sql`date(${shortLinks.createdAt})`)
+      .orderBy(sql`date(${shortLinks.createdAt})`);
+
+    return results.map((r) => ({ date: r.date, clicks: Number(r.clicks) }));
+  }
+
+  async countInactiveLinkByUser(
+    userId: string,
+    now = new Date()
+  ): Promise<number> {
+    const [result] = await db
+      .select({
+        count: sql<number>`count(*)`,
+      })
+      .from(shortLinks)
+      .where(
+        and(
+          eq(shortLinks.userId, userId),
+          eq(shortLinks.status, 'disabled'),
+          or(
+            and(isNotNull(shortLinks.expiresAt), lt(shortLinks.expiresAt, now)),
+            and(
+              isNotNull(shortLinks.maxClicks),
+              gte(shortLinks.clicks, shortLinks.maxClicks)
+            )
+          )
+        )
+      );
+
+    return result.count;
   }
 }

@@ -1,13 +1,16 @@
-import { BarChart3, Link } from 'lucide-react';
+import { getSummaryHomeAction } from '@/features/short-links/actions/short-link-summary.action';
+import { unwrapData } from '@/libs/types/response.type';
 
-export default function HomePage() {
+import { StatsSummary } from './components';
+
+export default async function HomePage() {
+  const data = await getSummaryHomeAction();
+  const stats = unwrapData(data);
+  console.log('summary', data);
+
   return (
     <div className="h-full min-h-screen bg-gray-50">
-      <div>
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-semibold">Home Links</h1>
-        </div>
-      </div>
+      <StatsSummary stats={stats} />
     </div>
   );
 }

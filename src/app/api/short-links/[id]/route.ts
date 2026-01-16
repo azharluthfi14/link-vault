@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 
-import { ShortLinkError, ShortLinkErrorCode } from '@/features/short-links';
+import { ShortLinkErrors } from '@/features/short-links';
 import { getShortLinkService } from '@/features/short-links/services';
 import { getSession } from '@/libs/auth/get-session';
-import { handleApiError } from '@/libs/errors/handle-api-error';
+import { handleApiError } from '@/libs/handlers/api-error.handler';
 
 const shortLinkService = getShortLinkService();
 
@@ -19,7 +19,7 @@ export async function GET(
     const link = await shortLinkService.getById(id);
 
     if (link.userId !== session.user.id) {
-      throw new ShortLinkError(ShortLinkErrorCode.FORBIDDEN);
+      throw ShortLinkErrors.forbidden();
     }
 
     return NextResponse.json(link);

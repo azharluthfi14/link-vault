@@ -5,6 +5,7 @@ import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import type { ComputedStatus } from '@/features/short-links';
 import { useShortLinkDetail, useShortLinks } from '@/features/short-links';
 import {
   deleteShortLinkAction,
@@ -27,7 +28,7 @@ export const ShortLinkCLientPage = () => {
     page: parseAsInteger.withDefault(1),
     limit: parseAsInteger.withDefault(10),
     search: parseAsString.withDefault(''),
-    status: parseAsString,
+    status: parseAsString.withDefault(''),
   });
 
   const searchDebounce = useDebounce(query.search, 400);
@@ -36,6 +37,7 @@ export const ShortLinkCLientPage = () => {
     page: query.page,
     limit: LIMIT,
     search: searchDebounce,
+    status: query.status as ComputedStatus,
   });
   const { data: detailShortLink } = useShortLinkDetail(selectedId ?? undefined);
 
@@ -63,13 +65,15 @@ export const ShortLinkCLientPage = () => {
     null,
     {
       onSuccess: (result) => {
-        toast.success(result?.message);
-        setModalDelete(false);
-        queryClient.invalidateQueries({ queryKey: ['short-links'] });
+        if (result?.success) {
+          toast.success('Short link deleted');
+          setModalDelete(false);
+          queryClient.invalidateQueries({ queryKey: ['short-links'] });
+        }
       },
       onError: (result) => {
-        if (!result?.success) {
-          toast.error(result?.message || 'Server error');
+        if (!result?.success && result?.showToast) {
+          toast.error(result?.error || 'Server error');
           setModalDelete(false);
         }
       },
@@ -80,7 +84,7 @@ export const ShortLinkCLientPage = () => {
     useResettableActionState(updateShortLinkAction, null, {
       onSuccess: (result) => {
         if (result?.success) {
-          toast.success(result.message);
+          toast.success('Short link updated');
           setModalEdit(false);
           resetEdit();
           queryClient.invalidateQueries({
@@ -92,8 +96,8 @@ export const ShortLinkCLientPage = () => {
         }
       },
       onError: (result) => {
-        if (!result?.success && result?.code !== 'VALIDATION_ERROR') {
-          toast.error(result?.message);
+        if (!result?.success && result?.showToast) {
+          toast.error(result.error);
         }
       },
     });
@@ -111,7 +115,7 @@ export const ShortLinkCLientPage = () => {
       search: searchDebounce || undefined,
       page: 1,
     });
-  }, [searchDebounce]);
+  }, [searchDebounce, setQuery]);
 
   return (
     <>
@@ -123,6 +127,10 @@ export const ShortLinkCLientPage = () => {
         totalPages={shortLink?.meta?.totalPages ?? 0}
         page={query.page}
         keyword={query.search}
+        onStatusChange={(status) => {
+          const newStatus = Array.from(status)[0] as string;
+          setQuery({ status: newStatus || '', page: 1 });
+        }}
         setKeyword={(search: string) => setQuery({ search, page: 1 })}
       />
       <DetailLink
@@ -149,8 +157,8 @@ export const ShortLinkCLientPage = () => {
         isLoading={editPending}
         shortLink={detailShortLink ?? null}
         errors={
-          stateEdit?.success === false && stateEdit.code === 'VALIDATION_ERROR'
-            ? stateEdit.fieldErrors
+          !stateEdit?.success && !stateEdit?.showToast
+            ? stateEdit?.fieldErrors
             : undefined
         }
         onOpenChange={() => {

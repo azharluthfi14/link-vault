@@ -30,7 +30,7 @@ export const ContentWrapper = ({
   ] = useResettableActionState(createShortLinkAction, null, {
     onSuccess: (result) => {
       if (result?.success) {
-        toast.success(result.message);
+        toast.success('Shortlink created');
         onClose();
         resetStateCreateLink();
         queryClient.invalidateQueries({ queryKey: ['short-links'] });
@@ -38,7 +38,7 @@ export const ContentWrapper = ({
     },
     onError: (result) => {
       if (!result?.success && result?.code !== 'VALIDATION_ERROR') {
-        toast.error(result?.message);
+        toast.error(result?.error);
         onClose();
       }
     },
@@ -70,7 +70,8 @@ export const ContentWrapper = ({
         isLoading={pendingCreateLink}
         errors={
           !stateCreateLink?.success &&
-          stateCreateLink?.code === 'VALIDATION_ERROR'
+          stateCreateLink?.code === 'VALIDATION_ERROR' &&
+          !stateCreateLink?.showToast
             ? stateCreateLink.fieldErrors
             : undefined
         }

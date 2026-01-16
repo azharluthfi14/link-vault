@@ -2,14 +2,14 @@ import type { ReactNode } from 'react';
 
 import { ContentWrapper } from '@/components/layout';
 import { Sidebar } from '@/components/ui';
-import { getSession } from '@/libs/auth/get-session';
+import { requireSession } from '@/libs/auth/requires-session';
 
 export default async function ProtectedLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const session = await getSession();
+  const session = await requireSession();
 
   return (
     <div className="min-h-screen">

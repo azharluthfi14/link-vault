@@ -15,10 +15,10 @@ export const SidebarItems = ({ isActive, item }: SidebarMenuItem) => {
       variant={isActive ? 'solid' : 'light'}
       className={cn(
         'flex w-full items-center justify-start text-sm shadow-none',
-        isActive ? 'text-white' : 'text-gray-500'
+        isActive ? 'text-white' : 'text-gray-900'
       )}>
       {item.icon}
-      {item.label}
+      <span className="font-semibold">{item.label}</span>
     </Button>
   );
 };

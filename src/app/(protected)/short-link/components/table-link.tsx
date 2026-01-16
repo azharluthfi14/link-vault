@@ -1,5 +1,6 @@
 'use client';
 
+import type { Selection } from '@heroui/react';
 import {
   Button,
   Card,
@@ -7,7 +8,6 @@ import {
   CardHeader,
   Chip,
   Input,
-  Link,
   Pagination,
   Select,
   SelectItem,
@@ -15,6 +15,7 @@ import {
 } from '@heroui/react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { ExternalLink, Eye, MousePointerClick, Search } from 'lucide-react';
+import Link from 'next/link';
 
 import { DataTable } from '@/components/ui';
 import type { ShortLink } from '@/features/short-links';
@@ -29,6 +30,7 @@ interface TableLinkProps {
   onPageChange: (page: number) => void;
   keyword: string;
   setKeyword: (keyword: string) => void;
+  onStatusChange: (value: Selection) => void;
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
@@ -36,7 +38,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 const categoryStatus = [
   { key: 'active', label: 'Active' },
   { key: 'disabled', label: 'Disabled' },
-  { key: 'status', label: 'Status' },
+  { key: 'expired', label: 'Expired' },
 ];
 
 export const TableLink = ({
@@ -48,30 +50,38 @@ export const TableLink = ({
   totalPages,
   keyword,
   setKeyword,
+  onStatusChange,
 }: TableLinkProps) => {
   const columnShortLinkHelper = createColumnHelper<ShortLink>();
   const shortLinkColumn = [
     columnShortLinkHelper.accessor('slug', {
       header: 'Short Link',
-      cell: (data) => (
-        <Snippet
-          symbol=""
-          tooltipProps={{
-            color: 'primary',
-            showArrow: true,
-          }}
-          classNames={{
-            base: cn('p-0 gap-x-0 bg-transparent'),
-            copyButton: cn('text-base'),
-          }}>
-          <Link
-            className="cursor-pointer text-xs hover:underline"
-            isExternal
-            href={`${BASE_URL}/${data.getValue()}`}>
-            {`${BASE_URL}/${data.getValue()}`}
-          </Link>
-        </Snippet>
-      ),
+      cell: (data) => {
+        const isDisabled = data.row?.original?.status !== 'active';
+        return isDisabled ? (
+          <div className="cursor-default text-xs font-medium text-gray-400 line-through">{`${BASE_URL}/${data.getValue()}`}</div>
+        ) : (
+          <Snippet
+            symbol=""
+            tooltipProps={{
+              color: 'primary',
+              showArrow: true,
+            }}
+            classNames={{
+              base: cn('p-0 gap-x-0 bg-transparent'),
+              copyButton: cn('text-base'),
+            }}>
+            <Link
+              prefetch={false}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary cursor-pointer font-sans text-xs font-medium hover:underline"
+              href={`/${data.getValue()}`}>
+              {`${BASE_URL}/${data.getValue()}`}
+            </Link>
+          </Snippet>
+        );
+      },
     }),
     columnShortLinkHelper.accessor('originalUrl', {
       header: 'Original Link',
@@ -79,8 +89,9 @@ export const TableLink = ({
         const link = data.getValue();
         return (
           <Link
-            isExternal
             href={link}
+            target="_blank"
+            rel="noopener noreferrer"
             className="hover:text-primary flex cursor-pointer space-x-2 text-xs text-gray-500 transition-colors hover:underline">
             {link.slice(0, 40)}... <ExternalLink className="size-3" />{' '}
           </Link>
@@ -106,7 +117,7 @@ export const TableLink = ({
       ),
     }),
     columnShortLinkHelper.accessor('clicks', {
-      header: 'Clicks',
+      header: 'Views',
       cell: (data) => {
         const countClick = data.getValue();
         return (
@@ -165,7 +176,12 @@ export const TableLink = ({
                 clearButton: cn('text-gray-500'),
               }}
             />
-            <Select radius="sm" placeholder="Select status" className="w-2/12">
+            <Select
+              onSelectionChange={(key: Selection) => onStatusChange(key)}
+              radius="sm"
+              isClearable
+              placeholder="Select status"
+              className="w-2/12">
               {categoryStatus.map((status) => (
                 <SelectItem key={status.key}>{status.label}</SelectItem>
               ))}
