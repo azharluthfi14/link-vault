@@ -13,3 +13,5 @@ export const RESERVED_ROUTES = [
 
 export const PUBLIC_ROUTES = ['/login', '/register'];
 export const PROTECTED_ROUTES = ['/home'];
+
+export const CLICK_CHART = [];

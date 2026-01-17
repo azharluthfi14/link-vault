@@ -71,6 +71,7 @@ export interface ShortLinkRepository {
     days: number
   ): Promise<{ date: string; clicks: number }[]>;
   countInactiveLinkByUser(userId: string): Promise<number>;
+  changeStatus(shortLinkId: string, status: DbShortLinkStatus): Promise<void>;
 }
 
 export type ShortLinkServiceDeps = {

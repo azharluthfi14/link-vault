@@ -1,6 +1,5 @@
 'use client';
 
-import type { Selection } from '@heroui/react';
 import {
   Button,
   Card,
@@ -9,13 +8,14 @@ import {
   Chip,
   Input,
   Pagination,
-  Select,
-  SelectItem,
   Snippet,
+  Tab,
+  Tabs,
 } from '@heroui/react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { ExternalLink, Eye, MousePointerClick, Search } from 'lucide-react';
 import Link from 'next/link';
+import type { Key } from 'react';
 
 import { DataTable } from '@/components/ui';
 import type { ShortLink } from '@/features/short-links';
@@ -30,12 +30,14 @@ interface TableLinkProps {
   onPageChange: (page: number) => void;
   keyword: string;
   setKeyword: (keyword: string) => void;
-  onStatusChange: (value: Selection) => void;
+  status: string;
+  onStatusChange: (value: string) => void;
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 
 const categoryStatus = [
+  { key: 'all', label: 'All' },
   { key: 'active', label: 'Active' },
   { key: 'disabled', label: 'Disabled' },
   { key: 'expired', label: 'Expired' },
@@ -49,6 +51,7 @@ export const TableLink = ({
   page,
   totalPages,
   keyword,
+  status,
   setKeyword,
   onStatusChange,
 }: TableLinkProps) => {
@@ -161,7 +164,7 @@ export const TableLink = ({
     <div className="space-y-2">
       <Card shadow="none" radius="sm" className="border border-gray-200">
         <CardHeader>
-          <div className="flex w-full items-end justify-end gap-x-4">
+          <div className="flex w-full items-center justify-between gap-x-4">
             <Input
               type="text"
               radius="sm"
@@ -169,23 +172,28 @@ export const TableLink = ({
               onClear={() => setKeyword('')}
               placeholder="Find your slug..."
               startContent={<Search className="size-4 text-gray-400" />}
-              className="w-4/12"
+              className="w-6/12"
               value={keyword}
               onValueChange={setKeyword}
               classNames={{
                 clearButton: cn('text-gray-500'),
               }}
             />
-            <Select
-              onSelectionChange={(key: Selection) => onStatusChange(key)}
+            <Tabs
+              aria-label="Options"
               radius="sm"
-              isClearable
-              placeholder="Select status"
-              className="w-2/12">
-              {categoryStatus.map((status) => (
-                <SelectItem key={status.key}>{status.label}</SelectItem>
+              color="primary"
+              selectedKey={status}
+              variant="light"
+              onSelectionChange={(key: Key) => onStatusChange(key.toString())}
+              classNames={{
+                base: cn('w-5/12'),
+                tabList: cn('w-full'),
+              }}>
+              {categoryStatus.map((item) => (
+                <Tab key={item.key} title={item.label} />
               ))}
-            </Select>
+            </Tabs>
           </div>
         </CardHeader>
         <CardBody className="p-0">

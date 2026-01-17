@@ -14,11 +14,11 @@ export const SidebarItems = ({ isActive, item }: SidebarMenuItem) => {
       color={isActive ? 'primary' : 'primary'}
       variant={isActive ? 'solid' : 'light'}
       className={cn(
-        'flex w-full items-center justify-start text-sm shadow-none',
+        'flex w-full items-center justify-start text-sm',
         isActive ? 'text-white' : 'text-gray-900'
       )}>
-      {item.icon}
-      <span className="font-semibold">{item.label}</span>
+      <span>{item.icon}</span>
+      <span className="font-medium">{item.label}</span>
     </Button>
   );
 };

@@ -223,4 +223,17 @@ export class DrizzleShortLinkRepository implements ShortLinkRepository {
 
     return result.count;
   }
+
+  async changeStatus(
+    shortLinkId: string,
+    status: DbShortLinkStatus
+  ): Promise<void> {
+    await db
+      .update(shortLinks)
+      .set({
+        status,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(shortLinks.id, shortLinkId), isNull(shortLinks.deletedAt)));
+  }
 }

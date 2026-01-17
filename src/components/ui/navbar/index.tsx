@@ -119,7 +119,7 @@ export const Navbar = ({ user, handleClickAddLink }: NavbarProps) => {
             </form>
           </div> */}
         </div>
-        <div className="flex gap-x-4">
+        <div className="flex items-center gap-x-4">
           <Button
             onPress={handleClickAddLink}
             color="primary"
@@ -131,7 +131,7 @@ export const Navbar = ({ user, handleClickAddLink }: NavbarProps) => {
               <Avatar
                 as="button"
                 name={user.email[0]}
-                className="size-10 cursor-pointer bg-gray-400 text-xl text-white transition-transform"
+                className="size-9 cursor-pointer bg-gray-400/50 text-base text-gray-500 transition-transform"
               />
             </DropdownTrigger>
             <DropdownMenu>

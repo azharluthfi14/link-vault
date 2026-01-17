@@ -61,7 +61,9 @@ export const ContentWrapper = ({
           'md:ml-64'
         )}>
         <Navbar user={user} handleClickAddLink={handleClickAddLink} />
-        <div className="space-y-6 overflow-y-auto p-4 md:p-6">{children}</div>
+        <div className="space-y-6 overflow-y-auto bg-inherit p-4 md:p-6">
+          {children}
+        </div>
       </main>
       <CreateLinkModal
         action={formCreateLink}

@@ -105,6 +105,12 @@ const cases = [
     expectedIds: ['2'],
     total: 2,
   },
+  {
+    name: 'disabled beats expired',
+    input: { status: 'disabled', page: 1, limit: 10 },
+    expectedIds: ['3'],
+    total: 1,
+  },
 ] satisfies BaseLinkTest[];
 
 describe('ShortLinkService', () => {
@@ -117,7 +123,12 @@ describe('ShortLinkService', () => {
   });
 
   mockShortLinkRepository.listByUser.mockResolvedValue(mockDbLinks);
-  mockShortLinkRepository.countByUser.mockResolvedValue(mockDbLinks.length);
+  mockShortLinkRepository.countByUser.mockImplementation(
+    async (_userId, _search, status) => {
+      if (status === 'disabled') return 1;
+      return mockDbLinks.length;
+    }
+  );
 
   it.each(cases)('$name', async ({ input, expectedIds, total }) => {
     const result = await service.listByUser({

@@ -5,7 +5,7 @@ import { updateShortLinkSchema } from '@/features/short-links';
 import { createShortLinkSchema } from '@/features/short-links';
 import { getSession } from '@/libs/auth/get-session';
 import { BadRequestError } from '@/libs/errors/base.error';
-import { handleAction } from '@/libs/handlers/action.handler';
+import { handleAction, handleVoidAction } from '@/libs/handlers/action.handler';
 import type { DataResult, VoidResult } from '@/libs/types/response.type';
 import { validateSchema } from '@/libs/validation/validation';
 
@@ -75,5 +75,39 @@ export async function deleteShortLinkAction(
     await shortLinkService.delete(session.user.id, linkId);
 
     return undefined as void;
+  });
+}
+
+export async function enabledShortLink(
+  _prevState: unknown,
+  formData: FormData
+): Promise<VoidResult> {
+  return handleVoidAction(async () => {
+    const session = await getSession();
+    const linkId = formData.get('id');
+
+    if (typeof linkId !== 'string' || !linkId) {
+      throw new BadRequestError('Short link id is required');
+    }
+
+    const shortLinkService = getShortLinkService();
+    await shortLinkService.enable(session.user.id, linkId);
+  });
+}
+
+export async function disabledShortLink(
+  _prevState: unknown,
+  formData: FormData
+): Promise<VoidResult> {
+  return handleVoidAction(async () => {
+    const session = await getSession();
+    const linkId = formData.get('id');
+
+    if (typeof linkId !== 'string' || !linkId) {
+      throw new BadRequestError('Short link id is required');
+    }
+
+    const shortLinkService = getShortLinkService();
+    await shortLinkService.disable(session.user.id, linkId);
   });
 }

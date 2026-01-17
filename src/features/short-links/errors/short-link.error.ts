@@ -51,6 +51,15 @@ export class DisabledStatusShortLink extends AppError {
   }
 }
 
+export class CannotEnabledExpiredShortLink extends AppError {
+  readonly code = 'CANNOT_ENABLED_EXPIRED_SHORT_LINK';
+  readonly statusCode = 401;
+
+  constructor(id: string) {
+    super(`Cannot enable expired short link`, { id });
+  }
+}
+
 export const ShortLinkErrors = {
   notFound: (id?: string) => new NotFoundError(`Short link ${id}  not found`),
   forbidden: () =>
@@ -63,4 +72,5 @@ export const ShortLinkErrors = {
   reservedSlug: (slug: string) => new ReservedSlugError(slug),
   invalidStatus: (status: string) => new InvalidStatusShortLink(status),
   disabledShortLink: (id: string) => new DisabledStatusShortLink(id),
+  cannotEnableExpired: (id: string) => new CannotEnabledExpiredShortLink(id),
 };

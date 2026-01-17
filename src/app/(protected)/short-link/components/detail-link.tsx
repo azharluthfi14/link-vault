@@ -24,6 +24,8 @@ import { formatExpiresAt } from '@/utils';
 
 interface DetailLinkProps {
   deleteAction: (formData: FormData) => void | Promise<void>;
+  enableAction: (formData: FormData) => void | Promise<void>;
+  disableAction: (formData: FormData) => void | Promise<void>;
   shortLink: ShortLink;
   isOpen: boolean;
   onOpenChange?: () => void;
@@ -38,6 +40,8 @@ export const DetailLink = ({
   openEditModal,
   onOpenChange,
   openDeleteModal,
+  enableAction,
+  disableAction,
   shortLink,
   isOpen,
 }: DetailLinkProps) => {
@@ -182,6 +186,31 @@ export const DetailLink = ({
                   }}>
                   Edit Short Link
                 </Button>
+                {shortLink.status === 'active' ? (
+                  <form action={disableAction}>
+                    <input type="hidden" name="id" value={shortLink.id} />
+                    <Button
+                      fullWidth
+                      radius="sm"
+                      color="warning"
+                      variant="flat"
+                      type="submit">
+                      Disable Link
+                    </Button>
+                  </form>
+                ) : (
+                  <form action={enableAction}>
+                    <input type="hidden" name="id" value={shortLink.id} />
+                    <Button
+                      fullWidth
+                      radius="sm"
+                      color="success"
+                      variant="flat"
+                      type="submit">
+                      Enable Link
+                    </Button>
+                  </form>
+                )}
                 <Button
                   onPress={() => {
                     onClose?.();

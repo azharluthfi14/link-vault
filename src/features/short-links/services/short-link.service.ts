@@ -23,21 +23,6 @@ export class ShortLinkServices {
     this.repo = deps.repo;
   }
 
-  private computeStatus(link: ShortLink, input: UpdateShortLinkSchemaInput) {
-    const expiresAt = input.expiresAt ?? link.expiresAt;
-    const maxClicks = input.maxClicks ?? link.maxClicks;
-
-    if (expiresAt && expiresAt < new Date()) {
-      return 'expired';
-    }
-
-    if (maxClicks && link.clicks >= maxClicks) {
-      return 'disabled';
-    }
-
-    return 'active';
-  }
-
   async getById(id: string): Promise<ShortLink> {
     const link = await this.repo.findById(id);
     if (!link) {
@@ -175,23 +160,49 @@ export class ShortLinkServices {
     return updated;
   }
 
-  async changeStatus(
-    userId: string,
-    shortLinkId: string,
-    status: 'active' | 'disabled'
-  ) {
-    const shortLink = await this.repo.findById(shortLinkId);
+  async disable(userId: string, shortLinkId: string) {
+    const link = await this.repo.findById(shortLinkId);
 
-    if (!shortLink) {
-      throw ShortLinkErrors.notFound(shortLinkId);
-    }
+    if (!link) throw ShortLinkErrors.notFound(shortLinkId);
+    if (link.userId !== userId) throw ShortLinkErrors.forbidden();
 
-    if (shortLink.userId !== userId) {
-      throw ShortLinkErrors.forbidden();
-    }
+    if (link.status === 'disabled') return;
 
-    await this.repo.update(shortLinkId, { status });
+    await this.repo.changeStatus(shortLinkId, 'disabled');
   }
+
+  async enable(userId: string, shortLinkId: string) {
+    const link = await this.repo.findById(shortLinkId);
+
+    if (!link) throw ShortLinkErrors.notFound(shortLinkId);
+    if (link.userId !== userId) throw ShortLinkErrors.forbidden();
+
+    if (isShortLinkExpired(link)) {
+      throw ShortLinkErrors.cannotEnableExpired(shortLinkId);
+    }
+
+    await this.repo.changeStatus(shortLinkId, 'active');
+  }
+
+  // async changeStatus(
+  //   userId: string,
+  //   shortLinkId: string,
+  //   status: 'active' | 'disabled'
+  // ) {
+  //   const shortLink = await this.repo.findById(shortLinkId);
+
+  //   if (!shortLink) {
+  //     throw ShortLinkErrors.notFound(shortLinkId);
+  //   }
+
+  //   if (shortLink.userId !== userId) {
+  //     throw ShortLinkErrors.forbidden();
+  //   }
+
+  //   if (shortLink.status === status) return;
+
+  //   await this.repo.changeStatus(shortLinkId, status);
+  // }
 
   async delete(userId: string, shortLinkId: string): Promise<void> {
     const shortLink = await this.repo.findById(shortLinkId);

@@ -35,7 +35,7 @@ export function DataTable<T>({
   return (
     <div className={`scrollbar-hide overflow-x-auto ${className || ''}`}>
       <table className="min-w-full table-auto">
-        <thead className="border-b border-gray-200 bg-gray-50">
+        <thead className="border-b border-gray-200 bg-gray-100">
           {table?.getHeaderGroups()?.map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup?.headers.map((header) => (

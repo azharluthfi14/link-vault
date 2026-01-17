@@ -9,6 +9,7 @@ import type { ComputedStatus } from '@/features/short-links';
 import { useShortLinkDetail, useShortLinks } from '@/features/short-links';
 import {
   deleteShortLinkAction,
+  disabledShortLink,
   updateShortLinkAction,
 } from '@/features/short-links/actions/short-link.action';
 import { useDebounce, useResettableActionState } from '@/hooks';
@@ -18,7 +19,7 @@ import { DetailLink } from './detail-link';
 import { EditLinkModal } from './edit-link';
 import { TableLink } from './table-link';
 
-const LIMIT = 5;
+const LIMIT = 6;
 
 export const ShortLinkCLientPage = () => {
   const queryClient = useQueryClient();
@@ -28,7 +29,7 @@ export const ShortLinkCLientPage = () => {
     page: parseAsInteger.withDefault(1),
     limit: parseAsInteger.withDefault(10),
     search: parseAsString.withDefault(''),
-    status: parseAsString.withDefault(''),
+    status: parseAsString.withDefault('all'),
   });
 
   const searchDebounce = useDebounce(query.search, 400);
@@ -37,7 +38,8 @@ export const ShortLinkCLientPage = () => {
     page: query.page,
     limit: LIMIT,
     search: searchDebounce,
-    status: query.status as ComputedStatus,
+    status:
+      query.status === 'all' ? undefined : (query.status as ComputedStatus),
   });
   const { data: detailShortLink } = useShortLinkDetail(selectedId ?? undefined);
 
@@ -102,6 +104,32 @@ export const ShortLinkCLientPage = () => {
       },
     });
 
+  const [, formDisableShortLink] = useResettableActionState(
+    disabledShortLink,
+    null,
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['short-link', selectedId] });
+        queryClient.invalidateQueries({
+          queryKey: ['short-links'],
+        });
+      },
+    }
+  );
+
+  const [, formEnableShortLink] = useResettableActionState(
+    disabledShortLink,
+    null,
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['short-link', selectedId] });
+        queryClient.invalidateQueries({
+          queryKey: ['short-links'],
+        });
+      },
+    }
+  );
+
   useEffect(() => {
     if (!shortLink?.meta.totalPages) return;
 
@@ -127,9 +155,9 @@ export const ShortLinkCLientPage = () => {
         totalPages={shortLink?.meta?.totalPages ?? 0}
         page={query.page}
         keyword={query.search}
+        status={query.status}
         onStatusChange={(status) => {
-          const newStatus = Array.from(status)[0] as string;
-          setQuery({ status: newStatus || '', page: 1 });
+          setQuery({ status, page: 1 });
         }}
         setKeyword={(search: string) => setQuery({ search, page: 1 })}
       />
@@ -142,6 +170,8 @@ export const ShortLinkCLientPage = () => {
         onOpenChange={() => {
           setModalDetail(false);
         }}
+        enableAction={formEnableShortLink}
+        disableAction={formDisableShortLink}
       />
       <ConfirmDeleteLink
         openDeleteModal={modalDelete}
